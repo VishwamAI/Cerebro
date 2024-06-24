@@ -17,7 +17,11 @@ static long translate_deb_syscall(const struct pt_regs *regs) {
     // Example: Translate open system call
     if (regs->orig_ax == __NR_open) {
         // Custom translation logic for open system call
-        // ...
+        char __user *filename = (char __user *)regs->di;
+        int flags = (int)regs->si;
+        int mode = (int)regs->dx;
+        long ret = sys_open(filename, flags, mode);
+        return ret;
     }
     return 0;
 }
@@ -28,7 +32,11 @@ static long translate_exe_syscall(const struct pt_regs *regs) {
     // Example: Translate CreateFile system call
     if (regs->orig_ax == __NR_open) {
         // Custom translation logic for CreateFile system call
-        // ...
+        char __user *filename = (char __user *)regs->di;
+        int flags = (int)regs->si;
+        int mode = (int)regs->dx;
+        long ret = sys_open(filename, flags, mode);
+        return ret;
     }
     return 0;
 }
@@ -39,7 +47,11 @@ static long translate_apk_syscall(const struct pt_regs *regs) {
     // Example: Translate open system call
     if (regs->orig_ax == __NR_open) {
         // Custom translation logic for open system call
-        // ...
+        char __user *filename = (char __user *)regs->di;
+        int flags = (int)regs->si;
+        int mode = (int)regs->dx;
+        long ret = sys_open(filename, flags, mode);
+        return ret;
     }
     return 0;
 }
