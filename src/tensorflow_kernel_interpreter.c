@@ -168,9 +168,48 @@ static int parse_tensorflow_model(char *model_data) {
     return 0;
 }
 
-// Function to load the computation graph and parameters into memory
+static struct node {
+    int id;
+    int opcode;
+    int num_inputs;
+    int num_outputs;
+    struct node **inputs;
+    struct node **outputs;
+};
+
+static struct computation_graph {
+    int num_nodes;
+    struct node *nodes;
+};
+
+static struct computation_graph graph;
+
 static int load_computation_graph(struct tensorflow_model *model) {
-    // Implementation of computation graph loading logic
+    int ret = parse_tensorflow_model(kernel_buffer);
+    if (ret < 0) {
+        printk(KERN_ALERT "TensorFlowInterpreterDevice: Failed to parse TensorFlow model\n");
+        return ret;
+    }
+
+    // Placeholder logic for loading the computation graph
+    graph.num_nodes = model->subgraphs()->Get(0)->operators()->size();
+    graph.nodes = kmalloc(graph.num_nodes * sizeof(struct node), GFP_KERNEL);
+    if (!graph.nodes) {
+        printk(KERN_ALERT "TensorFlowInterpreterDevice: Failed to allocate memory for computation graph nodes\n");
+        return -ENOMEM;
+    }
+
+    for (int i = 0; i < graph.num_nodes; i++) {
+        const tflite::Operator *op = model->subgraphs()->Get(0)->operators()->Get(i);
+        graph.nodes[i].id = i;
+        graph.nodes[i].opcode = op->opcode_index();
+        graph.nodes[i].num_inputs = op->inputs()->size();
+        graph.nodes[i].num_outputs = op->outputs()->size();
+        graph.nodes[i].inputs = NULL; // Placeholder
+        graph.nodes[i].outputs = NULL; // Placeholder
+    }
+
+    printk(KERN_INFO "TensorFlowInterpreterDevice: Computation graph loaded successfully\n");
     return 0;
 }
 
