@@ -95,8 +95,15 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
         return -ENOMEM;
     }
 
+    if (buffer[len - 1] != '\0') {
+        printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Buffer is not null-terminated\n");
+        kfree(result_buffer);
+        kfree(temp_buffer);
+        return -EINVAL;
+    }
+
     snprintf_ret = snprintf(kernel_buffer, 1024, "%.*s(%zu letters)", (int)(1024 - 15), buffer, len);
-    if (snprintf_ret > 1023) {
+    if (snprintf_ret >= 1024) {
         printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: snprintf output was truncated\n");
         kfree(result_buffer);
         kfree(temp_buffer);
@@ -113,12 +120,6 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
         // For simplicity, assume the model path is provided after the command
         if (sscanf(buffer + 11, "%127s", model_path) != 1) {
             printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Failed to parse model path\n");
-            kfree(result_buffer);
-            kfree(temp_buffer);
-            return -EINVAL;
-        }
-        if (strlen(model_path) >= sizeof(model_path)) {
-            printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Model path exceeds buffer size\n");
             kfree(result_buffer);
             kfree(temp_buffer);
             return -EINVAL;
@@ -149,7 +150,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
                 kfree(temp_buffer);
                 return -EINVAL;
             }
-            error_count = copy_to_user((void *)buffer, temp_buffer, strnlen(temp_buffer, 1024) + 1);
+            error_count = copy_to_user((void *)buffer, temp_buffer, strnlen(temp_buffer, 1024));
             if (error_count != 0) {
                 printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Failed to copy results to user space\n");
                 kfree(result_buffer);
