@@ -39,7 +39,7 @@ static ssize_t dev_read(struct file *filep, char *buffer, size_t len, loff_t *of
 }
 
 static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, loff_t *offset) {
-    sprintf(kernel_buffer, "%s(%zu letters)", buffer, len);
+    snprintf(kernel_buffer, 1024, "%s(%zu letters)", buffer, len);
     printk(KERN_INFO "FlaxDevice: Received %zu characters from the user\n", len);
 
     // Command handling logic
