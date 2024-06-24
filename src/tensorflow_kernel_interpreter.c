@@ -222,7 +222,14 @@ static int load_computation_graph(struct tensorflow_model *model) {
 
 // Function to execute the computation graph using the loaded parameters
 static int execute_computation_graph(void) {
-    // Implementation of computation graph execution logic
+    for (int i = 0; i < graph.num_nodes; i++) {
+        struct node *current_node = &graph.nodes[i];
+        // Placeholder for actual operation execution logic
+        // Execute the operation specified by the node's opcode
+        // For simplicity, assume a dummy operation that sets the result to the node's ID
+        snprintf(kernel_buffer + i * 10, 10, "Node %d", current_node->id);
+    }
+    printk(KERN_INFO "TensorFlowInterpreterDevice: Computation graph executed successfully\n");
     return 0;
 }
 
