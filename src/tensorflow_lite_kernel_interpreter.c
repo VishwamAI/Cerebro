@@ -143,13 +143,13 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
         } else {
             strncpy(temp_buffer, result_buffer, 1024);
             temp_buffer[1023] = '\0'; // Ensure null-termination
-            if (strlen(temp_buffer) + 1 > len) {
+            if (strnlen(temp_buffer, 1024) + 1 > len) {
                 printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: User buffer too small for results\n");
                 kfree(result_buffer);
                 kfree(temp_buffer);
                 return -EINVAL;
             }
-            error_count = copy_to_user((void *)buffer, temp_buffer, strlen(temp_buffer) + 1);
+            error_count = copy_to_user((void *)buffer, temp_buffer, strnlen(temp_buffer, 1024) + 1);
             if (error_count != 0) {
                 printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Failed to copy results to user space\n");
                 kfree(result_buffer);
@@ -164,7 +164,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
     kfree(result_buffer);
     kfree(temp_buffer);
 
-    return strlen(kernel_buffer);
+    return strnlen(kernel_buffer, 1024);
 }
 
 // Function to load the model from the specified path into kernel memory
