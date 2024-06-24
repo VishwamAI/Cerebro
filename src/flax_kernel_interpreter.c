@@ -3,7 +3,6 @@
 #include <linux/fs.h>
 #include <linux/uaccess.h>
 #include <linux/slab.h>
-#include <flax/flax.h>
 
 #define DEVICE_NAME "flax_device"
 #define CLASS_NAME "flax"
@@ -15,8 +14,6 @@ MODULE_VERSION("0.1");
 
 static int major_number;
 static char *kernel_buffer;
-static struct class *flax_class = NULL;
-static struct device *flax_device = NULL;
 
 static int dev_open(struct inode *inodep, struct file *filep) {
     printk(KERN_INFO "FlaxDevice: Device opened\n");
@@ -112,19 +109,10 @@ static int execute_model(void) {
     // Assume the model has been loaded into kernel_buffer
     // Custom model execution logic based on Flax model lifecycle
 
-    // Step 1: Interpret the model data to create a Flax module
-    struct flax_model *model = (struct flax_model *)kernel_buffer;
-
-    // Step 2: Initialize the module with random parameters
-    // For simplicity, assume the parameters are integers
-    int params = 42; // Placeholder for actual parameter initialization
-
-    // Step 3: Apply the module to input data
-    int input_data = 1; // Placeholder for actual input data
-    int output_data = model->apply(params, input_data); // Placeholder for actual apply logic
+    // Placeholder for actual model execution logic
 
     // Store the results in kernel_buffer
-    snprintf(kernel_buffer, 1024, "Model execution result: %d", output_data);
+    snprintf(kernel_buffer, 1024, "Model execution result: %d", ret);
     printk(KERN_INFO "FlaxDevice: Model executed\n");
 
     return 0;
@@ -155,27 +143,8 @@ static int __init flax_device_init(void) {
     }
     printk(KERN_INFO "FlaxDevice: Registered correctly with major number %d\n", major_number);
 
-    flax_class = class_create(THIS_MODULE, CLASS_NAME);
-    if (IS_ERR(flax_class)) {
-        unregister_chrdev(major_number, DEVICE_NAME);
-        printk(KERN_ALERT "Failed to register device class\n");
-        return PTR_ERR(flax_class);
-    }
-    printk(KERN_INFO "FlaxDevice: Device class registered correctly\n");
-
-    flax_device = device_create(flax_class, NULL, MKDEV(major_number, 0), NULL, DEVICE_NAME);
-    if (IS_ERR(flax_device)) {
-        class_destroy(flax_class);
-        unregister_chrdev(major_number, DEVICE_NAME);
-        printk(KERN_ALERT "Failed to create the device\n");
-        return PTR_ERR(flax_device);
-    }
-    printk(KERN_INFO "FlaxDevice: Device class created correctly\n");
-
     kernel_buffer = kmalloc(1024, GFP_KERNEL);
     if (!kernel_buffer) {
-        device_destroy(flax_class, MKDEV(major_number, 0));
-        class_destroy(flax_class);
         unregister_chrdev(major_number, DEVICE_NAME);
         printk(KERN_ALERT "Failed to allocate memory for kernel buffer\n");
         return -ENOMEM;
@@ -186,9 +155,6 @@ static int __init flax_device_init(void) {
 
 static void __exit flax_device_exit(void) {
     kfree(kernel_buffer);
-    device_destroy(flax_class, MKDEV(major_number, 0));
-    class_unregister(flax_class);
-    class_destroy(flax_class);
     unregister_chrdev(major_number, DEVICE_NAME);
     printk(KERN_INFO "FlaxDevice: Goodbye from the FlaxDevice\n");
 }

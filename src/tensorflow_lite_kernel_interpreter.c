@@ -3,6 +3,7 @@
 #include <linux/fs.h>
 #include <linux/uaccess.h>
 #include <linux/slab.h>
+#include <linux/device.h>
 
 #define DEVICE_NAME "tensorflow_lite_kernel_interpreter"
 #define CLASS_NAME "tensorflow_lite"
@@ -27,8 +28,6 @@ static int execute_computation_graph(struct tensorflow_lite_model *model);
 
 static int major_number;
 static char *kernel_buffer;
-static struct class *tensorflow_lite_class = NULL;
-static struct device *tensorflow_lite_device = NULL;
 
 static int dev_open(struct inode *inodep, struct file *filep) {
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Device opened\n");
@@ -54,11 +53,24 @@ static ssize_t dev_read(struct file *filep, char *buffer, size_t len, loff_t *of
 }
 
 static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, loff_t *offset) {
-    char model_path[256];
+    char model_path[128];
     int ret;
-    char result_buffer[1024];
-    char temp_buffer[1024];
+    char *result_buffer;
+    char *temp_buffer;
     int error_count;
+
+    result_buffer = kmalloc(1024, GFP_KERNEL);
+    if (!result_buffer) {
+        printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Failed to allocate memory for result buffer\n");
+        return -ENOMEM;
+    }
+
+    temp_buffer = kmalloc(1024, GFP_KERNEL);
+    if (!temp_buffer) {
+        kfree(result_buffer);
+        printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Failed to allocate memory for temp buffer\n");
+        return -ENOMEM;
+    }
 
     sprintf(kernel_buffer, "%s(%zu letters)", buffer, len);
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Received %zu characters from the user\n", len);
@@ -88,16 +100,21 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
         if (ret < 0) {
             printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Failed to retrieve results\n");
         } else {
-            strncpy(temp_buffer, result_buffer, sizeof(temp_buffer));
+            strncpy(temp_buffer, result_buffer, 1024);
             error_count = copy_to_user((void *)buffer, temp_buffer, strlen(temp_buffer) + 1);
             if (error_count != 0) {
                 printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Failed to copy results to user space\n");
+                kfree(result_buffer);
+                kfree(temp_buffer);
                 return -EFAULT;
             }
         }
     } else {
         printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Unknown command\n");
     }
+
+    kfree(result_buffer);
+    kfree(temp_buffer);
 
     return len;
 }
@@ -253,27 +270,8 @@ static int __init tensorflow_lite_kernel_interpreter_init(void) {
     }
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Registered correctly with major number %d\n", major_number);
 
-    tensorflow_lite_class = class_create(THIS_MODULE, CLASS_NAME);
-    if (IS_ERR(tensorflow_lite_class)) {
-        unregister_chrdev(major_number, DEVICE_NAME);
-        printk(KERN_ALERT "Failed to register device class\n");
-        return PTR_ERR(tensorflow_lite_class);
-    }
-    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Device class registered correctly\n");
-
-    tensorflow_lite_device = device_create(tensorflow_lite_class, NULL, MKDEV(major_number, 0), NULL, DEVICE_NAME);
-    if (IS_ERR(tensorflow_lite_device)) {
-        class_destroy(tensorflow_lite_class);
-        unregister_chrdev(major_number, DEVICE_NAME);
-        printk(KERN_ALERT "Failed to create the device\n");
-        return PTR_ERR(tensorflow_lite_device);
-    }
-    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Device class created correctly\n");
-
     kernel_buffer = kmalloc(1024, GFP_KERNEL);
     if (!kernel_buffer) {
-        device_destroy(tensorflow_lite_class, MKDEV(major_number, 0));
-        class_destroy(tensorflow_lite_class);
         unregister_chrdev(major_number, DEVICE_NAME);
         printk(KERN_ALERT "Failed to allocate memory for kernel buffer\n");
         return -ENOMEM;
@@ -284,9 +282,6 @@ static int __init tensorflow_lite_kernel_interpreter_init(void) {
 
 static void __exit tensorflow_lite_kernel_interpreter_exit(void) {
     kfree(kernel_buffer);
-    device_destroy(tensorflow_lite_class, MKDEV(major_number, 0));
-    class_unregister(tensorflow_lite_class);
-    class_destroy(tensorflow_lite_class);
     unregister_chrdev(major_number, DEVICE_NAME);
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Goodbye from the TensorFlowLiteKernelInterpreter\n");
 }
