@@ -77,6 +77,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
         return -EINVAL;
     }
 
+    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Before allocating memory for result buffer\n");
     result_buffer = kmalloc(1024, GFP_KERNEL);
     if (!result_buffer) {
         printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Failed to allocate memory for result buffer\n");
@@ -84,6 +85,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
     }
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Allocated memory for result buffer at %p\n", result_buffer);
 
+    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Before allocating memory for temp buffer\n");
     temp_buffer = kmalloc(1024, GFP_KERNEL);
     if (!temp_buffer) {
         kfree(result_buffer);
@@ -111,7 +113,9 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Preparing to format kernel_buffer with snprintf\n");
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: buffer: %s, len: %zu\n", buffer, len);
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: kernel_buffer before snprintf: %s, address: %p\n", kernel_buffer, kernel_buffer);
+    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Before snprintf\n");
     snprintf_ret = snprintf(kernel_buffer, 1022, "%.*s(%zu letters)", (int)(len), buffer, len);
+    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: After snprintf\n");
     if (snprintf_ret >= 1022) {
         printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: snprintf output was truncated\n");
         kfree(result_buffer);
@@ -148,6 +152,10 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
         ret = execute_model();
         if (ret < 0) {
             printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Failed to execute model\n");
+            kfree(result_buffer);
+            kfree(temp_buffer);
+            mutex_unlock(&kernel_buffer_mutex);
+            return -EFAULT;
         }
     } else if (len >= 11 && strncmp(buffer, "GET_RESULTS", 11) == 0) {
         // Handle retrieving results
@@ -155,6 +163,10 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
         ret = get_results(result_buffer, 1024);
         if (ret < 0) {
             printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Failed to retrieve results\n");
+            kfree(result_buffer);
+            kfree(temp_buffer);
+            mutex_unlock(&kernel_buffer_mutex);
+            return -EFAULT;
         } else {
             result_buffer[1023] = '\0'; // Ensure null-termination
             strncpy(temp_buffer, result_buffer, 1023);
@@ -170,7 +182,9 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
             }
 
             printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Preparing to copy results to user space\n");
+            printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Before copy_to_user\n");
             error_count = copy_to_user((void *)buffer, temp_buffer, strnlen(temp_buffer, 1024));
+            printk(KERN_INFO "TensorFlowLiteKernelInterpreter: After copy_to_user\n");
             if (error_count != 0) {
                 printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Failed to copy results to user space\n");
                 kfree(result_buffer);
@@ -185,10 +199,12 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
     }
 
     kfree(result_buffer);
+    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Freed result buffer\n");
     kfree(temp_buffer);
+    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Freed temp buffer\n");
     mutex_unlock(&kernel_buffer_mutex);
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Mutex unlocked\n");
-    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Freed allocated memory\n");
+    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Exiting dev_write function\n");
 
     return strnlen(kernel_buffer, 1024);
 }
