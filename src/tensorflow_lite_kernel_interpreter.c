@@ -127,13 +127,17 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
     // Command handling logic
     if (len >= 10 && strncmp(buffer, "LOAD_MODEL", 10) == 0) {
         printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Loading model\n");
+        printk(KERN_INFO "TensorFlowLiteKernelInterpreter: buffer: %s\n", buffer);
         if (sscanf(buffer + 11, "%127s", model_path) != 1) {
             printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Failed to parse model path\n");
+            printk(KERN_INFO "TensorFlowLiteKernelInterpreter: model_path: %s\n", model_path);
             kfree(result_buffer);
             kfree(temp_buffer);
             mutex_unlock(&kernel_buffer_mutex);
+            printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Mutex unlocked\n");
             return -EINVAL;
         }
+        printk(KERN_INFO "TensorFlowLiteKernelInterpreter: model_path: %s\n", model_path);
         ret = load_model(model_path);
         if (ret < 0) {
             printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Failed to load model from %s\n", model_path);
