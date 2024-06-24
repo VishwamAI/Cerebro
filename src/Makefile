@@ -1,6 +1,8 @@
-# Makefile for compiling the test_data_preprocessing kernel module
+# Makefile for compiling the test_data_preprocessing, test_tensorflow_lite_kernel_interpreter, and flax_kernel_interpreter kernel modules
 
 obj-m += test_data_preprocessing.o
+obj-m += test_tensorflow_lite_kernel_interpreter.o
+obj-m += flax_kernel_interpreter.o
 
 all:
 	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules
