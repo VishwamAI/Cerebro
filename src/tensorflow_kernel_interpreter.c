@@ -76,96 +76,18 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
     return len;
 }
 
+// Function prototypes for TensorFlow model loader functions
+extern int load_model(const char *model_path);
+extern int parse_tensorflow_model(char *model_data);
+
 // Function to load the TensorFlow model into kernel memory
 static int load_model(const char *model_path) {
-    struct file *file;
-    mm_segment_t old_fs;
-    loff_t pos = 0;
-    loff_t file_size;
-    int ret;
-
-    // Open the model file
-    old_fs = get_fs();
-    set_fs(KERNEL_DS);
-    file = filp_open(model_path, O_RDONLY, 0);
-    set_fs(old_fs);
-
-    if (IS_ERR(file)) {
-        printk(KERN_ALERT "TensorFlowInterpreterDevice: Failed to open model file\n");
-        return PTR_ERR(file);
-    }
-
-    // Get the size of the model file
-    old_fs = get_fs();
-    set_fs(KERNEL_DS);
-    file_size = vfs_llseek(file, 0, SEEK_END);
-    vfs_llseek(file, 0, SEEK_SET);
-    set_fs(old_fs);
-
-    if (file_size < 0) {
-        filp_close(file, NULL);
-        printk(KERN_ALERT "TensorFlowInterpreterDevice: Failed to get model file size\n");
-        return file_size;
-    }
-
-    // Allocate memory for the model data
-    kernel_buffer = kmalloc(file_size, GFP_KERNEL);
-    if (!kernel_buffer) {
-        filp_close(file, NULL);
-        printk(KERN_ALERT "TensorFlowInterpreterDevice: Failed to allocate memory for model data\n");
-        return -ENOMEM;
-    }
-
-    // Read the model file into the kernel buffer
-    old_fs = get_fs();
-    set_fs(KERNEL_DS);
-    ret = kernel_read(file, kernel_buffer, file_size, &pos);
-    set_fs(old_fs);
-
-    if (ret < 0) {
-        kfree(kernel_buffer);
-        filp_close(file, NULL);
-        printk(KERN_ALERT "TensorFlowInterpreterDevice: Failed to read model file\n");
-        return ret;
-    }
-
-    // Close the model file
-    filp_close(file, NULL);
-
-    printk(KERN_INFO "TensorFlowInterpreterDevice: Model loaded successfully\n");
-    return 0;
+    return load_model(model_path);
 }
 
 // Function to parse the TensorFlow model data
 static int parse_tensorflow_model(char *model_data) {
-    // Create a FlatBuffer verifier to verify the model data
-    flatbuffers::Verifier verifier((const uint8_t *)model_data, strlen(model_data));
-    if (!tflite::VerifyModelBuffer(verifier)) {
-        printk(KERN_ALERT "TensorFlowInterpreterDevice: Invalid TensorFlow model data\n");
-        return -EINVAL;
-    }
-
-    // Get the root of the FlatBuffer model
-    const tflite::Model *model = tflite::GetModel(model_data);
-    if (model == NULL) {
-        printk(KERN_ALERT "TensorFlowInterpreterDevice: Failed to get TensorFlow model root\n");
-        return -EINVAL;
-    }
-
-    // Iterate over the subgraphs in the model
-    for (int i = 0; i < model->subgraphs()->size(); i++) {
-        const tflite::SubGraph *subgraph = model->subgraphs()->Get(i);
-        printk(KERN_INFO "TensorFlowInterpreterDevice: Subgraph %d has %d operators\n", i, subgraph->operators()->size());
-
-        // Iterate over the operators in the subgraph
-        for (int j = 0; j < subgraph->operators()->size(); j++) {
-            const tflite::Operator *op = subgraph->operators()->Get(j);
-            printk(KERN_INFO "TensorFlowInterpreterDevice: Operator %d has opcode %d\n", j, op->opcode_index());
-        }
-    }
-
-    printk(KERN_INFO "TensorFlowInterpreterDevice: Model parsed successfully\n");
-    return 0;
+    return parse_tensorflow_model(model_data);
 }
 
 static struct node {
