@@ -109,8 +109,21 @@ static int load_model(const char *model_path) {
 static int execute_model(void) {
     // Execute the loaded model and store the results in kernel memory
     // For simplicity, assume the model is a simple function that can be executed
-    // Example: Execute the model and store the results
-    snprintf(kernel_buffer, 1024, "Model execution result");
+    struct flax_model *model;
+    int ret;
+
+    // Assume the model has been loaded into kernel_buffer
+    model = (struct flax_model *)kernel_buffer;
+
+    // Execute the model
+    ret = flax_execute_model(model);
+    if (ret < 0) {
+        printk(KERN_ALERT "FlaxDevice: Failed to execute model\n");
+        return ret;
+    }
+
+    // Store the results in kernel_buffer
+    snprintf(kernel_buffer, 1024, "Model execution result: %d", ret);
     printk(KERN_INFO "FlaxDevice: Model executed\n");
     return 0;
 }
