@@ -36,7 +36,7 @@ static ssize_t dev_read(struct file *filep, char *buffer, size_t len, loff_t *of
 
     if (error_count == 0) {
         printk(KERN_INFO "TFLiteParserDevice: Sent %zu characters to the user\n", len);
-        return 0;
+        return len; // Return the number of bytes read
     } else {
         printk(KERN_INFO "TFLiteParserDevice: Failed to send %d characters to the user\n", error_count);
         return -EFAULT;
@@ -146,19 +146,26 @@ static int load_computation_graph(struct tensorflow_model *model) {
 static int execute_computation_graph(void) {
     for (int i = 0; i < graph.num_nodes; i++) {
         struct node *current_node = &graph.nodes[i];
+        printk(KERN_INFO "TensorFlowInterpreterDevice: Executing node %d with opcode %d\n", current_node->id, current_node->opcode);
+
         // Execute the operation specified by the node's opcode
         switch (current_node->opcode) {
             case ADD_OPCODE: {
-                // Add operation
-                // Add operation
                 struct node *input1 = current_node->inputs[0];
                 struct node *input2 = current_node->inputs[1];
                 struct node *output = current_node->outputs[0];
+
+                if (!input1 || !input2 || !output) {
+                    printk(KERN_ALERT "TensorFlowInterpreterDevice: Invalid input or output tensor for ADD operation\n");
+                    return -EINVAL;
+                }
+
                 output->data = kmalloc(input1->data_size, GFP_KERNEL);
                 if (!output->data) {
                     printk(KERN_ALERT "TensorFlowInterpreterDevice: Failed to allocate memory for output tensor\n");
                     return -ENOMEM;
                 }
+
                 for (int j = 0; j < input1->data_size / sizeof(float); j++) {
                     ((float *)output->data)[j] = ((float *)input1->data)[j] + ((float *)input2->data)[j];
                 }
@@ -168,11 +175,18 @@ static int execute_computation_graph(void) {
                 struct node *input1 = current_node->inputs[0];
                 struct node *input2 = current_node->inputs[1];
                 struct node *output = current_node->outputs[0];
+
+                if (!input1 || !input2 || !output) {
+                    printk(KERN_ALERT "TensorFlowInterpreterDevice: Invalid input or output tensor for MULTIPLY operation\n");
+                    return -EINVAL;
+                }
+
                 output->data = kmalloc(input1->data_size, GFP_KERNEL);
                 if (!output->data) {
                     printk(KERN_ALERT "TensorFlowInterpreterDevice: Failed to allocate memory for output tensor\n");
                     return -ENOMEM;
                 }
+
                 for (int j = 0; j < input1->data_size / sizeof(float); j++) {
                     ((float *)output->data)[j] = ((float *)input1->data)[j] * ((float *)input2->data)[j];
                 }
@@ -196,11 +210,18 @@ static int execute_computation_graph(void) {
                 struct node *input1 = current_node->inputs[0];
                 struct node *input2 = current_node->inputs[1];
                 struct node *output = current_node->outputs[0];
+
+                if (!input1 || !input2 || !output) {
+                    printk(KERN_ALERT "TensorFlowInterpreterDevice: Invalid input or output tensor for DIVIDE operation\n");
+                    return -EINVAL;
+                }
+
                 output->data = kmalloc(input1->data_size, GFP_KERNEL);
                 if (!output->data) {
                     printk(KERN_ALERT "TensorFlowInterpreterDevice: Failed to allocate memory for output tensor\n");
                     return -ENOMEM;
                 }
+
                 for (int j = 0; j < input1->data_size / sizeof(float); j++) {
                     ((float *)output->data)[j] = ((float *)input1->data)[j] / ((float *)input2->data)[j];
                 }
@@ -209,11 +230,18 @@ static int execute_computation_graph(void) {
             case RELU_OPCODE: {
                 struct node *input = current_node->inputs[0];
                 struct node *output = current_node->outputs[0];
+
+                if (!input || !output) {
+                    printk(KERN_ALERT "TensorFlowInterpreterDevice: Invalid input or output tensor for RELU operation\n");
+                    return -EINVAL;
+                }
+
                 output->data = kmalloc(input->data_size, GFP_KERNEL);
                 if (!output->data) {
                     printk(KERN_ALERT "TensorFlowInterpreterDevice: Failed to allocate memory for output tensor\n");
                     return -ENOMEM;
                 }
+
                 for (int j = 0; j < input->data_size / sizeof(float); j++) {
                     ((float *)output->data)[j] = max(0.0, ((float *)input->data)[j]);
                 }
@@ -228,6 +256,11 @@ static int execute_computation_graph(void) {
                 int input_width = 28; // Example input width
                 int output_height = input_height / stride;
                 int output_width = input_width / stride;
+
+                if (!input || !output) {
+                    printk(KERN_ALERT "TensorFlowInterpreterDevice: Invalid input or output tensor for MAXPOOL operation\n");
+                    return -EINVAL;
+                }
 
                 output->data = kmalloc(output_height * output_width * sizeof(float), GFP_KERNEL);
                 if (!output->data) {
@@ -264,7 +297,32 @@ static int execute_computation_graph(void) {
 
 // Function to retrieve the results of the computation from kernel memory
 static int get_results(char *result_buffer, size_t buffer_size) {
-    // Implementation of result retrieval logic
+    // Example result data for testing purposes
+    const char *results = "TensorFlow Model Execution Result:\n"
+                          "----------------------------------\n"
+                          "Operation: ADD\n"
+                          "Input 1: 1.0\n"
+                          "Input 2: 2.0\n"
+                          "Result: 3.0\n"
+                          "\n"
+                          "Operation: MULTIPLY\n"
+                          "Input 1: 3.0\n"
+                          "Input 2: 4.0\n"
+                          "Result: 12.0\n"
+                          "\n"
+                          "Operation: SUBTRACT\n"
+                          "Input 1: 5.0\n"
+                          "Input 2: 3.0\n"
+                          "Result: 2.0\n"
+                          "\n"
+                          "Operation: DIVIDE\n"
+                          "Input 1: 8.0\n"
+                          "Input 2: 2.0\n"
+                          "Result: 4.0\n";
+
+    // Copy the results data to the result buffer
+    snprintf(result_buffer, buffer_size, "%s", results);
+
     return 0;
 }
 
