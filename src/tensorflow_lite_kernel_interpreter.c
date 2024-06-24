@@ -45,7 +45,7 @@ static ssize_t dev_read(struct file *filep, char *buffer, size_t len, loff_t *of
 
     if (error_count == 0) {
         printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Sent %zu characters to the user\n", len);
-        return 0;
+        return len;
     } else {
         printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Failed to send %d characters to the user\n", error_count);
         return -EFAULT;
@@ -96,7 +96,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
     }
 
     snprintf_ret = snprintf(kernel_buffer, 1024, "%s(%zu letters)", buffer, len);
-    if (snprintf_ret >= 1024) {
+    if (snprintf_ret > 1023) {
         printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: snprintf output was truncated\n");
         kfree(result_buffer);
         kfree(temp_buffer);
@@ -143,7 +143,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
         } else {
             strncpy(temp_buffer, result_buffer, 1024);
             temp_buffer[1023] = '\0'; // Ensure null-termination
-            if (len < strlen(temp_buffer) + 1) {
+            if (strlen(temp_buffer) + 1 > len) {
                 printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: User buffer too small for results\n");
                 kfree(result_buffer);
                 kfree(temp_buffer);
@@ -164,7 +164,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
     kfree(result_buffer);
     kfree(temp_buffer);
 
-    return len;
+    return strlen(kernel_buffer);
 }
 
 // Function to load the model from the specified path into kernel memory
