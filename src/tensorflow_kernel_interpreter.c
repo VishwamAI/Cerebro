@@ -196,11 +196,18 @@ static int execute_computation_graph(void) {
                 struct node *input1 = current_node->inputs[0];
                 struct node *input2 = current_node->inputs[1];
                 struct node *output = current_node->outputs[0];
+
+                if (!input1 || !input2 || !output) {
+                    printk(KERN_ALERT "TensorFlowInterpreterDevice: Invalid input or output tensor for SUBTRACT operation\n");
+                    return -EINVAL;
+                }
+
                 output->data = kmalloc(input1->data_size, GFP_KERNEL);
                 if (!output->data) {
                     printk(KERN_ALERT "TensorFlowInterpreterDevice: Failed to allocate memory for output tensor\n");
                     return -ENOMEM;
                 }
+
                 for (int j = 0; j < input1->data_size / sizeof(float); j++) {
                     ((float *)output->data)[j] = ((float *)input1->data)[j] - ((float *)input2->data)[j];
                 }
