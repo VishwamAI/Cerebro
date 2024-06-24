@@ -63,9 +63,9 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
         execute_model();
     } else if (strncmp(buffer, "GET_RESULTS", 11) == 0) {
         // Handle retrieving results
+        char result_buffer[1024];
         printk(KERN_INFO "FlaxDevice: Retrieving results\n");
-        // Retrieve the results from kernel memory and prepare them for user space
-        get_results();
+        get_results(result_buffer, sizeof(result_buffer));
     } else {
         printk(KERN_INFO "FlaxDevice: Unknown command\n");
     }
