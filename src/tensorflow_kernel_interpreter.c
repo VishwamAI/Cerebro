@@ -224,10 +224,28 @@ static int load_computation_graph(struct tensorflow_model *model) {
 static int execute_computation_graph(void) {
     for (int i = 0; i < graph.num_nodes; i++) {
         struct node *current_node = &graph.nodes[i];
-        // Placeholder for actual operation execution logic
         // Execute the operation specified by the node's opcode
-        // For simplicity, assume a dummy operation that sets the result to the node's ID
-        snprintf(kernel_buffer + i * 10, 10, "Node %d", current_node->id);
+        switch (current_node->opcode) {
+            case ADD_OPCODE: {
+                // Add operation
+                struct node *input1 = current_node->inputs[0];
+                struct node *input2 = current_node->inputs[1];
+                struct node *output = current_node->outputs[0];
+                output->data = kmalloc(input1->data_size, GFP_KERNEL);
+                if (!output->data) {
+                    printk(KERN_ALERT "TensorFlowInterpreterDevice: Failed to allocate memory for output tensor\n");
+                    return -ENOMEM;
+                }
+                for (int j = 0; j < input1->data_size / sizeof(float); j++) {
+                    ((float *)output->data)[j] = ((float *)input1->data)[j] + ((float *)input2->data)[j];
+                }
+                break;
+            }
+            default:
+                // Placeholder for other operations
+                snprintf(kernel_buffer + i * 10, 10, "Node %d", current_node->id);
+                break;
+        }
     }
     printk(KERN_INFO "TensorFlowInterpreterDevice: Computation graph executed successfully\n");
     return 0;
