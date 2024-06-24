@@ -97,6 +97,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
         kfree(temp_buffer);
         return -EINVAL;
     }
+    kernel_buffer[1023] = '\0'; // Ensure null-termination
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Received %zu characters from the user\n", len);
 
     // Command handling logic
