@@ -86,6 +86,6 @@ module_init(kernel_module_init);
 module_exit(kernel_module_exit);
 
 MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Devin");
+MODULE_AUTHOR("kasinadhsarma, Devin");
 MODULE_DESCRIPTION("A kernel module for executing TensorFlow models and integrating Flax library");
 MODULE_VERSION("0.1");
