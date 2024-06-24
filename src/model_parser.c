@@ -3,7 +3,6 @@
 #include <linux/fs.h>
 #include <linux/uaccess.h>
 #include <linux/slab.h>
-#include <linux/protobuf-c/protobuf-c.h>
 
 // Define the structure for the model parser
 struct model_parser {
@@ -33,8 +32,35 @@ static int parse_model(struct model_parser *parser) {
     // Example: Print the first few bytes of the model data
     printk(KERN_INFO "ModelParser: Model data (first 16 bytes): %*ph\n", 16, parser->model_data);
 
-    // TODO: Implement the actual parsing logic using Protocol Buffers (protobuf)
+    // TODO: Implement the actual parsing logic using a custom parser
     // and extract the necessary information from the model data
+
+    // Custom parsing logic for TensorFlow's saved_model.pb file
+    // This is a simplified example and may need to be expanded based on the actual protobuf format
+    size_t offset = 0;
+    while (offset < parser->model_size) {
+        // Read the field number and wire type
+        uint8_t field_number = parser->model_data[offset] >> 3;
+        uint8_t wire_type = parser->model_data[offset] & 0x07;
+        offset++;
+
+        // Handle different field numbers and wire types
+        switch (field_number) {
+            case 1: // Example: Handle a specific field number
+                if (wire_type == 2) { // Length-delimited field
+                    uint32_t length = 0;
+                    memcpy(&length, &parser->model_data[offset], sizeof(uint32_t));
+                    offset += sizeof(uint32_t);
+                    printk(KERN_INFO "ModelParser: Field 1, Length: %u\n", length);
+                    offset += length; // Skip the field data
+                }
+                break;
+            // Add more cases for other field numbers and wire types as needed
+            default:
+                printk(KERN_WARNING "ModelParser: Unknown field number %u\n", field_number);
+                break;
+        }
+    }
 
     return 0;
 }
