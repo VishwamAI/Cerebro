@@ -146,7 +146,6 @@ static int interpret_and_execute_model(char *model_data) {
     }
 
     // Step 2: Load the computation graph and parameters into memory
-    // This is a placeholder for the actual loading logic
     int ret = load_computation_graph(model);
     if (ret < 0) {
         printk(KERN_ALERT "TensorFlowModelInterpreter: Failed to load computation graph\n");
@@ -154,8 +153,11 @@ static int interpret_and_execute_model(char *model_data) {
     }
 
     // Step 3: Execute the computation graph using the loaded parameters
-    // This is a placeholder for the actual execution logic
     result = execute_computation_graph(model);
+
+    // Free the allocated memory for the model
+    kfree(model->graph);
+    kfree(model);
 
     return result;
 }
