@@ -53,18 +53,27 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
         // For simplicity, assume the model path is provided after the command
         char model_path[256];
         sscanf(buffer + 11, "%s", model_path);
-        // Add logic to load the model from model_path
-        // Example: load_model(model_path);
+        int ret = load_model(model_path);
+        if (ret < 0) {
+            printk(KERN_ALERT "TensorFlowDevice: Failed to load model from %s\n", model_path);
+        }
     } else if (strncmp(buffer, "EXECUTE_MODEL", 13) == 0) {
         // Handle model execution
         printk(KERN_INFO "TensorFlowDevice: Executing model\n");
-        // Execute the loaded model and store the results in kernel memory
-        // Example: execute_model();
+        int ret = execute_model();
+        if (ret < 0) {
+            printk(KERN_ALERT "TensorFlowDevice: Failed to execute model\n");
+        }
     } else if (strncmp(buffer, "GET_RESULTS", 11) == 0) {
         // Handle retrieving results
         printk(KERN_INFO "TensorFlowDevice: Retrieving results\n");
-        // Retrieve the results from kernel memory and prepare them for user space
-        // Example: get_results();
+        char result_buffer[1024];
+        int ret = get_results(result_buffer, sizeof(result_buffer));
+        if (ret < 0) {
+            printk(KERN_ALERT "TensorFlowDevice: Failed to retrieve results\n");
+        } else {
+            copy_to_user(buffer, result_buffer, strlen(result_buffer) + 1);
+        }
     } else {
         printk(KERN_INFO "TensorFlowDevice: Unknown command\n");
     }
@@ -107,37 +116,17 @@ static int load_model(const char *model_path) {
 }
 
 static int execute_model(void) {
-    // Execute the loaded model and store the results in kernel memory
+    // Custom code to execute the loaded model and store the results in kernel memory
     // For simplicity, assume the model is a simple function that can be executed
-    TF_Graph *graph;
-    TF_Status *status;
-    TF_SessionOptions *options;
-    TF_Session *session;
     int ret;
 
     // Assume the model has been loaded into kernel_buffer
-    graph = TF_NewGraph();
-    status = TF_NewStatus();
-    options = TF_NewSessionOptions();
-    session = TF_NewSession(graph, options, status);
-
-    if (TF_GetCode(status) != TF_OK) {
-        printk(KERN_ALERT "TensorFlowDevice: Failed to create TensorFlow session\n");
-        return -1;
-    }
-
-    // Execute the model
-    // Placeholder for actual TensorFlow model execution logic
+    // Placeholder for custom model execution logic
     ret = 0; // Replace with actual execution result
 
     // Store the results in kernel_buffer
     snprintf(kernel_buffer, 1024, "Model execution result: %d", ret);
     printk(KERN_INFO "TensorFlowDevice: Model executed\n");
-
-    TF_DeleteSession(session, status);
-    TF_DeleteSessionOptions(options);
-    TF_DeleteStatus(status);
-    TF_DeleteGraph(graph);
 
     return 0;
 }
