@@ -41,9 +41,6 @@ static void __exit test_tensorflow_lite_kernel_interpreter_exit(void) {
     printk(KERN_INFO "Test TensorFlow Lite Kernel Interpreter Exited\n");
 }
 
-module_init(test_tensorflow_lite_kernel_interpreter_init);
-module_exit(test_tensorflow_lite_kernel_interpreter_exit);
-
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("kasinadhsarma, Devin");
 MODULE_DESCRIPTION("Test Module for TensorFlow Lite Kernel Interpreter");

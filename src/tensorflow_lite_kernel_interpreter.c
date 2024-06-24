@@ -12,6 +12,10 @@ MODULE_AUTHOR("kasinadhsarma, Devin");
 MODULE_DESCRIPTION("A kernel module for interpreting and executing TensorFlow Lite models");
 MODULE_VERSION("0.1");
 
+static int load_model(const char *model_path);
+static int execute_model(void);
+static int get_results(char *result_buffer, size_t buffer_size);
+
 static int major_number;
 static char *kernel_buffer;
 static struct class *tensorflow_lite_class = NULL;
@@ -71,7 +75,9 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
         if (ret < 0) {
             printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Failed to retrieve results\n");
         } else {
-            copy_to_user(buffer, result_buffer, strlen(result_buffer) + 1);
+            char temp_buffer[1024];
+            strncpy(temp_buffer, result_buffer, sizeof(temp_buffer));
+            copy_to_user((void *)buffer, temp_buffer, strlen(temp_buffer) + 1);
         }
     } else {
         printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Unknown command\n");
@@ -85,30 +91,23 @@ static int load_model(const char *model_path) {
     // Load the model from the specified path into kernel memory
     // For simplicity, assume the model is a binary file that can be loaded into memory
     struct file *model_file;
-    mm_segment_t old_fs;
     loff_t pos = 0;
     int ret;
-
-    old_fs = get_fs();
-    set_fs(KERNEL_DS);
 
     model_file = filp_open(model_path, O_RDONLY, 0);
     if (IS_ERR(model_file)) {
         printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Failed to open model file %s\n", model_path);
-        set_fs(old_fs);
         return PTR_ERR(model_file);
     }
 
     ret = kernel_read(model_file, kernel_buffer, 1024, &pos);
     if (ret < 0) {
         printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Failed to read model file %s\n", model_path);
-        filp_close(model_file, NULL);
-        set_fs(old_fs);
+        filp_close(model_file, NULL);;
         return ret;
     }
 
     filp_close(model_file, NULL);
-    set_fs(old_fs);
 
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Model loaded from %s\n", model_path);
     return 0;
@@ -132,33 +131,22 @@ static int execute_model(void) {
     return 0;
 }
 
+/*
 static int interpret_and_execute_model(char *model_data) {
-    // Custom logic to interpret and execute the TensorFlow Lite model data
     int result = 0;
-
-    // Step 1: Parse the TensorFlow Lite model file to extract the computation graph and parameters
-    // For simplicity, assume the model_data contains the serialized computation graph and parameters
-    // This is a placeholder for the actual parsing logic
     struct tensorflow_lite_model *model = parse_tensorflow_lite_model(model_data);
     if (!model) {
         printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Failed to parse model data\n");
         return -EINVAL;
     }
-
-    // Step 2: Load the computation graph and parameters into memory
     int ret = load_computation_graph(model);
     if (ret < 0) {
         printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Failed to load computation graph\n");
         return ret;
     }
-
-    // Step 3: Execute the computation graph using the loaded parameters
     result = execute_computation_graph(model);
-
-    // Free the allocated memory for the model
     kfree(model->graph);
     kfree(model);
-
     return result;
 }
 
@@ -168,15 +156,11 @@ static struct tensorflow_lite_model *parse_tensorflow_lite_model(char *model_dat
         printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Failed to allocate memory for model\n");
         return NULL;
     }
-
-    // Custom parsing logic for TensorFlow Lite model file
-    // This is a simplified example and may need to be expanded based on the actual format
     size_t offset = 0;
     while (offset < strlen(model_data)) {
         uint8_t field_number = model_data[offset] >> 3;
         uint8_t wire_type = model_data[offset] & 0x07;
         offset++;
-
         switch (field_number) {
             case 1:
                 if (wire_type == 2) {
@@ -206,41 +190,28 @@ static struct tensorflow_lite_model *parse_tensorflow_lite_model(char *model_dat
                 break;
         }
     }
-
     return model;
 }
 
 static int load_computation_graph(struct tensorflow_lite_model *model) {
-    // Custom logic to load the computation graph and parameters into memory
-    // This is a placeholder for the actual loading logic
     if (!model || !model->graph) {
         printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Invalid model or graph\n");
         return -EINVAL;
     }
-
-    // Example: Load the graph into a hypothetical execution engine
-    // This is a placeholder for the actual loading logic
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Computation graph loaded\n");
-
     return 0;
 }
 
 static int execute_computation_graph(struct tensorflow_lite_model *model) {
-    // Custom logic to execute the computation graph using the loaded parameters
-    // This is a placeholder for the actual execution logic
     if (!model || !model->graph) {
         printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Invalid model or graph\n");
         return -EINVAL;
     }
-
-    // Example: Execute the graph using a hypothetical execution engine
-    // This is a placeholder for the actual execution logic
-    int result = 42; // Placeholder for the actual result
-
+    int result = 42;
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Computation graph executed\n");
-
     return result;
 }
+*/
 
 static int get_results(char *result_buffer, size_t buffer_size) {
     // Retrieve the results from kernel memory and prepare them for user space
