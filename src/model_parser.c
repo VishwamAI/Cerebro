@@ -55,6 +55,22 @@ static int parse_model(struct model_parser *parser) {
                     offset += length; // Skip the field data
                 }
                 break;
+            case 2: // Example: Handle another specific field number
+                if (wire_type == 0) { // Varint field
+                    uint64_t value = 0;
+                    memcpy(&value, &parser->model_data[offset], sizeof(uint64_t));
+                    offset += sizeof(uint64_t);
+                    printk(KERN_INFO "ModelParser: Field 2, Value: %llu\n", value);
+                }
+                break;
+            case 3: // Example: Handle a third specific field number
+                if (wire_type == 5) { // 32-bit field
+                    uint32_t value = 0;
+                    memcpy(&value, &parser->model_data[offset], sizeof(uint32_t));
+                    offset += sizeof(uint32_t);
+                    printk(KERN_INFO "ModelParser: Field 3, Value: %u\n", value);
+                }
+                break;
             // Add more cases for other field numbers and wire types as needed
             default:
                 printk(KERN_WARNING "ModelParser: Unknown field number %u\n", field_number);
