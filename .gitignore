@@ -27,3 +27,12 @@ __pycache__/
 
 # Ignore directories
 /build/
+/awesome-tensorflow-lite/**
+
+# Ignore TensorFlow Lite model files
+mobilenet_v1_1.0_224_quant.tflite
+
+# Ignore additional untracked files
+*.o.d
+*.cmd
+labels_mobilenet_quant_v1_224.txt
