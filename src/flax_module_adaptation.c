@@ -23,6 +23,7 @@ int init_flax_module(struct flax_module *module) {
     // 2. Initialize the module state
     // 3. Register the module with the kernel
 
+    module->module_size = 1024; // Example size, adjust as needed
     module->module_data = vmalloc(module->module_size);
     if (!module->module_data) {
         printk(KERN_ERR "Failed to allocate memory for Flax module\n");
