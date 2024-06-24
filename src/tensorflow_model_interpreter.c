@@ -82,12 +82,12 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
 
 // Function to load the model from the specified path into kernel memory
 static int load_model(const char *model_path) {
-    // Load the model from the specified path into kernel memory
-    // For simplicity, assume the model is a binary file that can be loaded into memory
     struct file *model_file;
     mm_segment_t old_fs;
     loff_t pos = 0;
     int ret;
+    size_t file_size;
+    void *model_data;
 
     old_fs = get_fs();
     set_fs(KERNEL_DS);
@@ -99,9 +99,19 @@ static int load_model(const char *model_path) {
         return PTR_ERR(model_file);
     }
 
-    ret = kernel_read(model_file, kernel_buffer, 1024, &pos);
+    file_size = i_size_read(file_inode(model_file));
+    model_data = kmalloc(file_size, GFP_KERNEL);
+    if (!model_data) {
+        printk(KERN_ALERT "TensorFlowModelInterpreter: Failed to allocate memory for model data\n");
+        filp_close(model_file, NULL);
+        set_fs(old_fs);
+        return -ENOMEM;
+    }
+
+    ret = kernel_read(model_file, model_data, file_size, &pos);
     if (ret < 0) {
         printk(KERN_ALERT "TensorFlowModelInterpreter: Failed to read model file %s\n", model_path);
+        kfree(model_data);
         filp_close(model_file, NULL);
         set_fs(old_fs);
         return ret;
@@ -110,6 +120,7 @@ static int load_model(const char *model_path) {
     filp_close(model_file, NULL);
     set_fs(old_fs);
 
+    kernel_buffer = model_data;
     printk(KERN_INFO "TensorFlowModelInterpreter: Model loaded from %s\n", model_path);
     return 0;
 }
