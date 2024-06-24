@@ -86,11 +86,17 @@ static int get_file_type(const struct pt_regs *regs) {
     // Placeholder logic to determine file type
     // In a real implementation, this function would analyze the file header or extension
     char __user *filename = (char __user *)regs->di;
-    if (strstr(filename, ".deb") != NULL) {
+    char file_ext[5];
+    if (strncpy_from_user(file_ext, filename + strlen_user(filename) - 4, 4) < 0) {
+        return -1; // Error in copying file extension
+    }
+    file_ext[4] = '\0'; // Ensure null-termination
+
+    if (strcmp(file_ext, ".deb") == 0) {
         return FILE_TYPE_DEB;
-    } else if (strstr(filename, ".exe") != NULL) {
+    } else if (strcmp(file_ext, ".exe") == 0) {
         return FILE_TYPE_EXE;
-    } else if (strstr(filename, ".apk") != NULL) {
+    } else if (strcmp(file_ext, ".apk") == 0) {
         return FILE_TYPE_APK;
     }
     return -1; // Unknown file type
