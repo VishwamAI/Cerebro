@@ -85,5 +85,13 @@ static long handle_syscall_translation(const struct pt_regs *regs) {
 static int get_file_type(const struct pt_regs *regs) {
     // Placeholder logic to determine file type
     // In a real implementation, this function would analyze the file header or extension
-    return FILE_TYPE_DEB; // Example: Assume .deb file type for now
+    char __user *filename = (char __user *)regs->di;
+    if (strstr(filename, ".deb") != NULL) {
+        return FILE_TYPE_DEB;
+    } else if (strstr(filename, ".exe") != NULL) {
+        return FILE_TYPE_EXE;
+    } else if (strstr(filename, ".apk") != NULL) {
+        return FILE_TYPE_APK;
+    }
+    return -1; // Unknown file type
 }
