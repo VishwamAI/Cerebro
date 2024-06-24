@@ -119,6 +119,6 @@ module_init(tf_model_execution_init);
 module_exit(tf_model_execution_exit);
 
 MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Devin");
+MODULE_AUTHOR("kasinadhsarma, Devin");
 MODULE_DESCRIPTION("A kernel module for executing TensorFlow models");
 MODULE_VERSION("0.1");

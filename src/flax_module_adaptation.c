@@ -105,6 +105,6 @@ module_init(flax_module_adaptation_init);
 module_exit(flax_module_adaptation_exit);
 
 MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Devin");
+MODULE_AUTHOR("kasinadhsarma, Devin");
 MODULE_DESCRIPTION("A kernel module for adapting Flax library");
 MODULE_VERSION("0.1");

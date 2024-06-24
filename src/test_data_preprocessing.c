@@ -32,5 +32,5 @@ module_init(test_data_preprocessing_init);
 module_exit(test_data_preprocessing_exit);
 
 MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Devin");
+MODULE_AUTHOR("kasinadhsarma, Devin");
 MODULE_DESCRIPTION("Test Module for Data Preprocessing Component");
