@@ -48,18 +48,22 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
     if (strncmp(buffer, "LOAD_MODEL", 10) == 0) {
         // Handle model loading
         printk(KERN_INFO "FlaxDevice: Loading model\n");
-        // Add model loading logic here
-        // For example, load the model from the specified path into kernel memory
+        // Load the model from the specified path into kernel memory
+        // For simplicity, assume the model path is provided after the command
+        char model_path[256];
+        sscanf(buffer + 11, "%s", model_path);
+        // Add logic to load the model from model_path
+        // Example: load_model(model_path);
     } else if (strncmp(buffer, "EXECUTE_MODEL", 13) == 0) {
         // Handle model execution
         printk(KERN_INFO "FlaxDevice: Executing model\n");
-        // Add model execution logic here
-        // For example, execute the loaded model and store the results in kernel memory
+        // Execute the loaded model and store the results in kernel memory
+        // Example: execute_model();
     } else if (strncmp(buffer, "GET_RESULTS", 11) == 0) {
         // Handle retrieving results
         printk(KERN_INFO "FlaxDevice: Retrieving results\n");
-        // Add result retrieval logic here
-        // For example, retrieve the results from kernel memory and prepare them for user space
+        // Retrieve the results from kernel memory and prepare them for user space
+        // Example: get_results();
     } else {
         printk(KERN_INFO "FlaxDevice: Unknown command\n");
     }
