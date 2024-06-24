@@ -111,8 +111,8 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Preparing to format kernel_buffer with snprintf\n");
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: buffer: %s, len: %zu\n", buffer, len);
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: kernel_buffer before snprintf: %s, address: %p\n", kernel_buffer, kernel_buffer);
-    snprintf_ret = snprintf(kernel_buffer, 1023, "%.*s(%zu letters)", (int)(len), buffer, len);
-    if (snprintf_ret >= 1023) {
+    snprintf_ret = snprintf(kernel_buffer, 1022, "%.*s(%zu letters)", (int)(len), buffer, len);
+    if (snprintf_ret >= 1022) {
         printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: snprintf output was truncated\n");
         kfree(result_buffer);
         kfree(temp_buffer);
@@ -156,6 +156,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
         if (ret < 0) {
             printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Failed to retrieve results\n");
         } else {
+            result_buffer[1023] = '\0'; // Ensure null-termination
             strncpy(temp_buffer, result_buffer, 1023);
             temp_buffer[1023] = '\0'; // Ensure null-termination
             printk(KERN_INFO "TensorFlowLiteKernelInterpreter: temp_buffer after strncpy: %s\n", temp_buffer);
