@@ -165,8 +165,6 @@ static int execute_computation_graph(void) {
                 break;
             }
             case MULTIPLY_OPCODE: {
-                // Multiply operation
-                // Multiply operation
                 struct node *input1 = current_node->inputs[0];
                 struct node *input2 = current_node->inputs[1];
                 struct node *output = current_node->outputs[0];
@@ -205,6 +203,53 @@ static int execute_computation_graph(void) {
                 }
                 for (int j = 0; j < input1->data_size / sizeof(float); j++) {
                     ((float *)output->data)[j] = ((float *)input1->data)[j] / ((float *)input2->data)[j];
+                }
+                break;
+            }
+            case RELU_OPCODE: {
+                struct node *input = current_node->inputs[0];
+                struct node *output = current_node->outputs[0];
+                output->data = kmalloc(input->data_size, GFP_KERNEL);
+                if (!output->data) {
+                    printk(KERN_ALERT "TensorFlowInterpreterDevice: Failed to allocate memory for output tensor\n");
+                    return -ENOMEM;
+                }
+                for (int j = 0; j < input->data_size / sizeof(float); j++) {
+                    ((float *)output->data)[j] = max(0.0, ((float *)input->data)[j]);
+                }
+                break;
+            }
+            case MAXPOOL_OPCODE: {
+                struct node *input = current_node->inputs[0];
+                struct node *output = current_node->outputs[0];
+                int pool_size = 2; // Example pool size
+                int stride = 2; // Example stride
+                int input_height = 28; // Example input height
+                int input_width = 28; // Example input width
+                int output_height = input_height / stride;
+                int output_width = input_width / stride;
+
+                output->data = kmalloc(output_height * output_width * sizeof(float), GFP_KERNEL);
+                if (!output->data) {
+                    printk(KERN_ALERT "TensorFlowInterpreterDevice: Failed to allocate memory for output tensor\n");
+                    return -ENOMEM;
+                }
+
+                for (int h = 0; h < output_height; h++) {
+                    for (int w = 0; w < output_width; w++) {
+                        float max_val = -FLT_MAX;
+                        for (int ph = 0; ph < pool_size; ph++) {
+                            for (int pw = 0; pw < pool_size; pw++) {
+                                int ih = h * stride + ph;
+                                int iw = w * stride + pw;
+                                float val = ((float *)input->data)[ih * input_width + iw];
+                                if (val > max_val) {
+                                    max_val = val;
+                                }
+                            }
+                        }
+                        ((float *)output->data)[h * output_width + w] = max_val;
+                    }
                 }
                 break;
             }
