@@ -1,1 +1,1 @@
-cmd_/home/ubuntu/Cerebro/src/modules.order := {   echo /home/ubuntu/Cerebro/src/test_data_preprocessing.o; :; } > /home/ubuntu/Cerebro/src/modules.order
+cmd_/home/ubuntu/Cerebro/src/modules.order := {   echo /home/ubuntu/Cerebro/src/test_data_preprocessing.o;   echo /home/ubuntu/Cerebro/src/test_tensorflow_lite_kernel_interpreter.o;   echo /home/ubuntu/Cerebro/src/flax_kernel_interpreter.o; :; } > /home/ubuntu/Cerebro/src/modules.order

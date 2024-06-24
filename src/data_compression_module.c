@@ -39,15 +39,3 @@ void data_compression_module(const char *input, char *output, size_t input_size,
     deflateEnd(&strm);
     printf("Data compressed successfully.\n");
 }
-
-int main() {
-    // Test the data_compression_module function
-    const char *data = "Sample data to compress.";
-    char compressed_data[1024];
-    size_t compressed_size;
-
-    data_compression_module(data, compressed_data, strlen(data), &compressed_size);
-    printf("Compressed data size: %zu bytes\n", compressed_size);
-
-    return 0;
-}

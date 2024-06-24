@@ -36,9 +36,3 @@ void file_system_interface() {
         return;
     }
 }
-
-int main() {
-    // Test the file_system_interface function
-    file_system_interface();
-    return 0;
-}

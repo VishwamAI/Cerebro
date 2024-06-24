@@ -1,1 +1,3 @@
 /home/ubuntu/Cerebro/src/test_data_preprocessing.o
+/home/ubuntu/Cerebro/src/test_tensorflow_lite_kernel_interpreter.o
+/home/ubuntu/Cerebro/src/flax_kernel_interpreter.o

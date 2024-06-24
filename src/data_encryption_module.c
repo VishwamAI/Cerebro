@@ -65,18 +65,3 @@ void data_encryption_module(const char *input, char *output, int encrypt) {
     EVP_CIPHER_CTX_free(ctx);
     printf("Data %s successfully.\n", encrypt ? "encrypted" : "decrypted");
 }
-
-int main() {
-    // Test the data_encryption_module function
-    const char *data = "Sample data to encrypt.";
-    char encrypted_data[128];
-    char decrypted_data[128];
-
-    data_encryption_module(data, encrypted_data, 1);
-    printf("Encrypted data: %s\n", encrypted_data);
-
-    data_encryption_module(encrypted_data, decrypted_data, 0);
-    printf("Decrypted data: %s\n", decrypted_data);
-
-    return 0;
-}

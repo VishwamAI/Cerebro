@@ -21,10 +21,3 @@ void data_caching_layer(const char *data) {
         printf("Cache is full. Unable to cache data.\n");
     }
 }
-
-int main() {
-    // Test the data_caching_layer function
-    data_caching_layer("Sample data to cache.");
-    data_caching_layer("Additional data.");
-    return 0;
-}
