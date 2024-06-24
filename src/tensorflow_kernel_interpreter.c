@@ -81,6 +81,7 @@ static int load_model(const char *model_path) {
     struct file *file;
     mm_segment_t old_fs;
     loff_t pos = 0;
+    loff_t file_size;
     int ret;
 
     // Open the model file
@@ -94,8 +95,21 @@ static int load_model(const char *model_path) {
         return PTR_ERR(file);
     }
 
+    // Get the size of the model file
+    old_fs = get_fs();
+    set_fs(KERNEL_DS);
+    file_size = vfs_llseek(file, 0, SEEK_END);
+    vfs_llseek(file, 0, SEEK_SET);
+    set_fs(old_fs);
+
+    if (file_size < 0) {
+        filp_close(file, NULL);
+        printk(KERN_ALERT "TensorFlowInterpreterDevice: Failed to get model file size\n");
+        return file_size;
+    }
+
     // Allocate memory for the model data
-    kernel_buffer = kmalloc(1024, GFP_KERNEL);
+    kernel_buffer = kmalloc(file_size, GFP_KERNEL);
     if (!kernel_buffer) {
         filp_close(file, NULL);
         printk(KERN_ALERT "TensorFlowInterpreterDevice: Failed to allocate memory for model data\n");
@@ -105,7 +119,7 @@ static int load_model(const char *model_path) {
     // Read the model file into the kernel buffer
     old_fs = get_fs();
     set_fs(KERNEL_DS);
-    ret = kernel_read(file, kernel_buffer, 1024, &pos);
+    ret = kernel_read(file, kernel_buffer, file_size, &pos);
     set_fs(old_fs);
 
     if (ret < 0) {
