@@ -95,7 +95,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
         return -ENOMEM;
     }
 
-    snprintf_ret = snprintf(kernel_buffer, 1024, "%s(%zu letters)", buffer, len);
+    snprintf_ret = snprintf(kernel_buffer, 1024, "%.*s(%zu letters)", (int)(1024 - 15), buffer, len);
     if (snprintf_ret > 1023) {
         printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: snprintf output was truncated\n");
         kfree(result_buffer);
@@ -141,7 +141,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
         if (ret < 0) {
             printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Failed to retrieve results\n");
         } else {
-            strncpy(temp_buffer, result_buffer, 1024);
+            strncpy(temp_buffer, result_buffer, 1023);
             temp_buffer[1023] = '\0'; // Ensure null-termination
             if (strnlen(temp_buffer, 1024) + 1 > len) {
                 printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: User buffer too small for results\n");
