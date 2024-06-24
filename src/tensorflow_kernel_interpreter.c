@@ -191,7 +191,6 @@ static int load_computation_graph(struct tensorflow_model *model) {
         return ret;
     }
 
-    // Placeholder logic for loading the computation graph
     graph.num_nodes = model->subgraphs()->Get(0)->operators()->size();
     graph.nodes = kmalloc(graph.num_nodes * sizeof(struct node), GFP_KERNEL);
     if (!graph.nodes) {
@@ -205,8 +204,16 @@ static int load_computation_graph(struct tensorflow_model *model) {
         graph.nodes[i].opcode = op->opcode_index();
         graph.nodes[i].num_inputs = op->inputs()->size();
         graph.nodes[i].num_outputs = op->outputs()->size();
-        graph.nodes[i].inputs = NULL; // Placeholder
-        graph.nodes[i].outputs = NULL; // Placeholder
+        graph.nodes[i].inputs = kmalloc(graph.nodes[i].num_inputs * sizeof(struct node *), GFP_KERNEL);
+        graph.nodes[i].outputs = kmalloc(graph.nodes[i].num_outputs * sizeof(struct node *), GFP_KERNEL);
+
+        for (int j = 0; j < graph.nodes[i].num_inputs; j++) {
+            graph.nodes[i].inputs[j] = &graph.nodes[op->inputs()->Get(j)];
+        }
+
+        for (int k = 0; k < graph.nodes[i].num_outputs; k++) {
+            graph.nodes[i].outputs[k] = &graph.nodes[op->outputs()->Get(k)];
+        }
     }
 
     printk(KERN_INFO "TensorFlowInterpreterDevice: Computation graph loaded successfully\n");
