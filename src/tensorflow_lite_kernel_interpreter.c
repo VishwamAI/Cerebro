@@ -70,6 +70,11 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
         return -EINVAL;
     }
 
+    if (len < 1) {
+        printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Buffer length is too small\n");
+        return -EINVAL;
+    }
+
     result_buffer = kmalloc(1024, GFP_KERNEL);
     if (!result_buffer) {
         printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Failed to allocate memory for result buffer\n");
@@ -108,6 +113,12 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
         // For simplicity, assume the model path is provided after the command
         if (sscanf(buffer + 11, "%127s", model_path) != 1) {
             printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Failed to parse model path\n");
+            kfree(result_buffer);
+            kfree(temp_buffer);
+            return -EINVAL;
+        }
+        if (strlen(model_path) >= sizeof(model_path)) {
+            printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Model path exceeds buffer size\n");
             kfree(result_buffer);
             kfree(temp_buffer);
             return -EINVAL;
