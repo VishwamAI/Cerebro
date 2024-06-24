@@ -2,6 +2,8 @@
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/string.h>
+#include <linux/slab.h>
+#include <linux/ctype.h>
 
 // Function to tokenize input data
 void tokenize(const char *input, char **tokens, int *num_tokens) {
@@ -35,20 +37,6 @@ void preprocess_input(const char *input, char **tokens, int *num_tokens) {
     kfree(normalized_input);
 }
 
-// Module initialization function
-static int __init data_preprocessing_init(void) {
-    printk(KERN_INFO "Data Preprocessing Component Initialized\n");
-    return 0;
-}
-
-// Module exit function
-static void __exit data_preprocessing_exit(void) {
-    printk(KERN_INFO "Data Preprocessing Component Exited\n");
-}
-
-module_init(data_preprocessing_init);
-module_exit(data_preprocessing_exit);
-
 MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Devin");
+MODULE_AUTHOR("kasinadhsarma, Devin");
 MODULE_DESCRIPTION("Data Preprocessing Component for NLP Execution Module");
