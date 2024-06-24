@@ -150,6 +150,7 @@ static int execute_computation_graph(void) {
         switch (current_node->opcode) {
             case ADD_OPCODE: {
                 // Add operation
+                // Add operation
                 struct node *input1 = current_node->inputs[0];
                 struct node *input2 = current_node->inputs[1];
                 struct node *output = current_node->outputs[0];
@@ -165,6 +166,7 @@ static int execute_computation_graph(void) {
             }
             case MULTIPLY_OPCODE: {
                 // Multiply operation
+                // Multiply operation
                 struct node *input1 = current_node->inputs[0];
                 struct node *input2 = current_node->inputs[1];
                 struct node *output = current_node->outputs[0];
@@ -178,8 +180,35 @@ static int execute_computation_graph(void) {
                 }
                 break;
             }
+            case SUBTRACT_OPCODE: {
+                struct node *input1 = current_node->inputs[0];
+                struct node *input2 = current_node->inputs[1];
+                struct node *output = current_node->outputs[0];
+                output->data = kmalloc(input1->data_size, GFP_KERNEL);
+                if (!output->data) {
+                    printk(KERN_ALERT "TensorFlowInterpreterDevice: Failed to allocate memory for output tensor\n");
+                    return -ENOMEM;
+                }
+                for (int j = 0; j < input1->data_size / sizeof(float); j++) {
+                    ((float *)output->data)[j] = ((float *)input1->data)[j] - ((float *)input2->data)[j];
+                }
+                break;
+            }
+            case DIVIDE_OPCODE: {
+                struct node *input1 = current_node->inputs[0];
+                struct node *input2 = current_node->inputs[1];
+                struct node *output = current_node->outputs[0];
+                output->data = kmalloc(input1->data_size, GFP_KERNEL);
+                if (!output->data) {
+                    printk(KERN_ALERT "TensorFlowInterpreterDevice: Failed to allocate memory for output tensor\n");
+                    return -ENOMEM;
+                }
+                for (int j = 0; j < input1->data_size / sizeof(float); j++) {
+                    ((float *)output->data)[j] = ((float *)input1->data)[j] / ((float *)input2->data)[j];
+                }
+                break;
+            }
             default:
-                // Placeholder for other operations
                 snprintf(kernel_buffer + i * 10, 10, "Node %d", current_node->id);
                 break;
         }
