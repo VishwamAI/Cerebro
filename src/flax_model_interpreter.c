@@ -18,6 +18,10 @@ static char *kernel_buffer;
 static struct class *flax_class = NULL;
 static struct device *flax_device = NULL;
 
+struct flax_model {
+    int (*apply)(int params, int input_data);
+};
+
 static int dev_open(struct inode *inodep, struct file *filep) {
     printk(KERN_INFO "FlaxDevice: Device opened\n");
     return 0;
