@@ -12,6 +12,10 @@ MODULE_AUTHOR("kasinadhsarma, Devin");
 MODULE_DESCRIPTION("A kernel module for executing Flax models");
 MODULE_VERSION("0.1");
 
+static int load_model(const char *model_path);
+static int execute_model(void);
+static int get_results(char *result_buffer, size_t buffer_size);
+
 static int major_number;
 static char *kernel_buffer;
 
@@ -39,6 +43,7 @@ static ssize_t dev_read(struct file *filep, char *buffer, size_t len, loff_t *of
 }
 
 static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, loff_t *offset) {
+    char model_path[256];
     snprintf(kernel_buffer, 1024, "%s(%zu letters)", buffer, len);
     printk(KERN_INFO "FlaxDevice: Received %zu characters from the user\n", len);
 
@@ -48,20 +53,19 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
         printk(KERN_INFO "FlaxDevice: Loading model\n");
         // Load the model from the specified path into kernel memory
         // For simplicity, assume the model path is provided after the command
-        char model_path[256];
         sscanf(buffer + 11, "%s", model_path);
         // Add logic to load the model from model_path
-        // Example: load_model(model_path);
+        load_model(model_path);
     } else if (strncmp(buffer, "EXECUTE_MODEL", 13) == 0) {
         // Handle model execution
         printk(KERN_INFO "FlaxDevice: Executing model\n");
         // Execute the loaded model and store the results in kernel memory
-        // Example: execute_model();
+        execute_model();
     } else if (strncmp(buffer, "GET_RESULTS", 11) == 0) {
         // Handle retrieving results
         printk(KERN_INFO "FlaxDevice: Retrieving results\n");
         // Retrieve the results from kernel memory and prepare them for user space
-        // Example: get_results();
+        get_results();
     } else {
         printk(KERN_INFO "FlaxDevice: Unknown command\n");
     }
@@ -74,17 +78,12 @@ static int load_model(const char *model_path) {
     // Load the model from the specified path into kernel memory
     // For simplicity, assume the model is a binary file that can be loaded into memory
     struct file *model_file;
-    mm_segment_t old_fs;
     loff_t pos = 0;
     int ret;
-
-    old_fs = get_fs();
-    set_fs(KERNEL_DS);
 
     model_file = filp_open(model_path, O_RDONLY, 0);
     if (IS_ERR(model_file)) {
         printk(KERN_ALERT "FlaxDevice: Failed to open model file %s\n", model_path);
-        set_fs(old_fs);
         return PTR_ERR(model_file);
     }
 
@@ -92,12 +91,10 @@ static int load_model(const char *model_path) {
     if (ret < 0) {
         printk(KERN_ALERT "FlaxDevice: Failed to read model file %s\n", model_path);
         filp_close(model_file, NULL);
-        set_fs(old_fs);
         return ret;
     }
 
     filp_close(model_file, NULL);
-    set_fs(old_fs);
 
     printk(KERN_INFO "FlaxDevice: Model loaded from %s\n", model_path);
     return 0;
