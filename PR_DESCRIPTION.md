@@ -14,6 +14,7 @@ This pull request addresses the following changes:
 - Ensured that `kernel_buffer` is only allocated once and reused, rather than being allocated every time `dev_write` is called.
 - Reviewed the mutex locking and unlocking to ensure that the mutex is always released, even if the function exits early.
 - Updated the error handling to return appropriate error codes when an error occurs, rather than the length of `kernel_buffer`.
+- Added logging after the `snprintf` call in the `execute_model` function to confirm whether it is succeeding or failing.
 
 ## Testing
 - The `tensorflow_model_execution_test.sh` script will be used to test the changes. It includes logging system resource usage before and after loading the model, executing the model, and retrieving the results.
