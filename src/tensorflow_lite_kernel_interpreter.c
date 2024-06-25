@@ -114,8 +114,10 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: buffer: %s, len: %zu\n", buffer, len);
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: kernel_buffer before snprintf: %s, address: %p\n", kernel_buffer, kernel_buffer);
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Before snprintf\n");
+    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: kernel_buffer address: %p, buffer address: %p, len: %zu\n", kernel_buffer, buffer, len);
     snprintf_ret = snprintf(kernel_buffer, 1022, "%.*s(%zu letters)", (int)(len), buffer, len);
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: After snprintf\n");
+    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: snprintf_ret: %d, kernel_buffer: %s\n", snprintf_ret, kernel_buffer);
     if (snprintf_ret >= 1022) {
         printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: snprintf output was truncated\n");
         kfree(result_buffer);
@@ -187,6 +189,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
 
             printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Preparing to copy results to user space\n");
             printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Before copy_to_user\n");
+            printk(KERN_INFO "TensorFlowLiteKernelInterpreter: buffer address: %p, temp_buffer address: %p, temp_buffer length: %zu\n", buffer, temp_buffer, strnlen(temp_buffer, 1024));
             error_count = copy_to_user((void *)buffer, temp_buffer, strnlen(temp_buffer, 1024));
             printk(KERN_INFO "TensorFlowLiteKernelInterpreter: After copy_to_user\n");
             if (error_count != 0) {
