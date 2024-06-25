@@ -468,3 +468,4 @@ static void __exit tensorflow_lite_kernel_interpreter_exit(void) {
 
 module_init(tensorflow_lite_kernel_interpreter_init);
 module_exit(tensorflow_lite_kernel_interpreter_exit);
+printk(KERN_INFO "TensorFlowLiteKernelInterpreter: buffer=%p, len=%zu\n", buffer, len);
