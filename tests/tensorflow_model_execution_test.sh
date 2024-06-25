@@ -2,6 +2,9 @@
 
 # Test script for TensorFlow model execution within the custom kernel
 
+# Set permissions for the device file
+chmod 666 /dev/tensorflow_interpreter_device
+
 # Log system resource usage
 echo "Logging system resource usage before loading model..."
 free -m
