@@ -75,6 +75,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
 
     mutex_lock(&kernel_buffer_mutex);
 
+    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Before snprintf, buffer: %s\n", buffer);
     snprintf_ret = snprintf(kernel_buffer, 1023, "%.*s(%zu letters)", (int)(len), buffer, len);
     kernel_buffer[1023] = '\0'; // Ensure null-termination
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: After snprintf, snprintf_ret: %d, kernel_buffer: %s\n", snprintf_ret, kernel_buffer);
@@ -121,11 +122,13 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
             mutex_unlock(&kernel_buffer_mutex);
             return -EINVAL;
         }
+        printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Before strncpy, result_buffer: %s\n", result_buffer);
         strncpy(temp_buffer, result_buffer, len);
         temp_buffer[len] = '\0'; // Ensure null-termination
+        printk(KERN_INFO "TensorFlowLiteKernelInterpreter: After strncpy, temp_buffer: %s\n", temp_buffer);
 
-        if (strnlen(temp_buffer, len) + 1 > len) {
-            printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: User buffer too small for results\n");
+        if (strnlen(temp_buffer, len) >= len) {
+            printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: User buffer size exceeded\n");
             kfree(result_buffer);
             kfree(temp_buffer);
             mutex_unlock(&kernel_buffer_mutex);
@@ -134,13 +137,6 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
 
         printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Before copy_to_user\n");
         printk(KERN_INFO "TensorFlowLiteKernelInterpreter: temp_buffer: %s, len: %zu, temp_buffer size: %zu\n", temp_buffer, len, len + 1);
-        if (len + 1 > len) {
-            printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: User buffer size exceeded\n");
-            kfree(result_buffer);
-            kfree(temp_buffer);
-            mutex_unlock(&kernel_buffer_mutex);
-            return -EINVAL;
-        }
         error_count = copy_to_user((void *)buffer, temp_buffer, strnlen(temp_buffer, len) + 1); // Ensure null-terminator is copied
         printk(KERN_INFO "TensorFlowLiteKernelInterpreter: After copy_to_user, error_count: %d\n", error_count);
         if (error_count != 0) {
