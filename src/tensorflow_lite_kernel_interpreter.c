@@ -56,7 +56,6 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
     char *temp_buffer = NULL;
     int error_count;
     int snprintf_ret;
-    int sscanf_ret;
 
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: buffer=%p, len=%zu\n", buffer, len);
 
@@ -226,12 +225,12 @@ static int load_model(const char *model_path) {
 
 static int execute_model(void) {
     int ret;
+    struct sysinfo mem_info;
 
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Entering execute_model function\n");
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: kernel_buffer before execution: %s\n", kernel_buffer);
 
     // Log system memory usage before executing the model
-    struct sysinfo mem_info;
     si_meminfo(&mem_info);
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Memory before executing model - Total: %lu, Free: %lu, Available: %lu\n",
            mem_info.totalram, mem_info.freeram, mem_info.freeram + mem_info.bufferram);
@@ -410,14 +409,6 @@ static int __init tensorflow_lite_kernel_interpreter_init(void) {
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Registered correctly with major number %d\n", major_number);
 
     return 0;
-}
-
-static void __exit tensorflow_lite_kernel_interpreter_exit(void) {
-    if (kernel_buffer) {
-        kfree(kernel_buffer);
-    }
-    unregister_chrdev(major_number, DEVICE_NAME);
-    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Goodbye from the TensorFlowLiteKernelInterpreter\n");
 }
 
 module_init(tensorflow_lite_kernel_interpreter_init);
