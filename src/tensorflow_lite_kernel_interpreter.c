@@ -234,6 +234,8 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
             mutex_unlock(&kernel_buffer_mutex);
             return -ENOMEM;
         }
+        printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Allocated memory for result buffer at %p\n", result_buffer);
+
         temp_buffer = kmalloc(len + 1, GFP_KERNEL); // Dynamically allocate memory based on actual size
         if (!temp_buffer) {
             kfree(result_buffer);
@@ -241,6 +243,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
             mutex_unlock(&kernel_buffer_mutex);
             return -ENOMEM;
         }
+        printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Allocated memory for temp buffer at %p\n", temp_buffer);
 
         ret = get_results(result_buffer, len + 1);
         if (ret < 0) {
@@ -263,7 +266,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
             }
 
             printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Before copy_to_user\n");
-            printk(KERN_INFO "TensorFlowLiteKernelInterpreter: temp_buffer: %s, len: %zu, temp_buffer size: %zu\n", temp_buffer, len, len + 1);
+            printk(KERN_INFO "TensorFlowLiteKernelInterpreter: buffer: %p, temp_buffer: %p, len: %zu, temp_buffer size: %zu\n", buffer, temp_buffer, len, len + 1);
             error_count = copy_to_user((void *)buffer, temp_buffer, strnlen(temp_buffer, len) + 1); // Ensure null-terminator is copied
             printk(KERN_INFO "TensorFlowLiteKernelInterpreter: After copy_to_user, error_count: %d\n", error_count);
             if (error_count != 0) {
