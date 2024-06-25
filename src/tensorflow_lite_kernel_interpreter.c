@@ -29,7 +29,7 @@ static int load_computation_graph(struct tensorflow_lite_model *model);
 static int execute_computation_graph(struct tensorflow_lite_model *model);
 
 static int major_number;
-static char *kernel_buffer;
+static char *kernel_buffer = NULL;
 
 static int dev_open(struct inode *inodep, struct file *filep) {
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Device opened\n");
@@ -40,6 +40,90 @@ static int dev_release(struct inode *inodep, struct file *filep) {
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Device closed\n");
     if (kernel_buffer) {
         printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Freeing kernel buffer at %p\n", kernel_buffer);
+        kfree(kernel_buffer);
+        kernel_buffer = NULL;
+    }
+    if (kernel_buffer) {
+        printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Freeing kernel buffer at %p\n", kernel_buffer);
+
+if (!kernel_buffer) {
+    printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Kernel buffer not allocated\n");
+    mutex_unlock(&kernel_buffer_mutex);
+    return -ENOMEM;
+}
+
+printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Before snprintf\n");
+printk(KERN_INFO "TensorFlowLiteKernelInterpreter: buffer: %s, len: %zu\n", buffer, len);
+snprintf_ret = snprintf(kernel_buffer, 1023, "%.*s(%zu letters)", (int)(len), buffer, len);
+kernel_buffer[1023] = '\0'; // Ensure null-termination
+printk(KERN_INFO "TensorFlowLiteKernelInterpreter: After snprintf, snprintf_ret: %d, kernel_buffer: %s\n", snprintf_ret, kernel_buffer);
+if (snprintf_ret < 0) {
+    printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: snprintf failed\n");
+    mutex_unlock(&kernel_buffer_mutex);
+    return -EINVAL;
+}
+if (snprintf_ret >= 1023) {
+    printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: snprintf output was truncated\n");
+    mutex_unlock(&kernel_buffer_mutex);
+    return -EINVAL;
+}
+
+result_buffer = kmalloc(len + 1, GFP_KERNEL); // Dynamically allocate memory based on actual size
+if (!result_buffer) {
+    printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Failed to allocate memory for result buffer\n");
+    mutex_unlock(&kernel_buffer_mutex);
+    return -ENOMEM;
+}
+temp_buffer = kmalloc(len + 1, GFP_KERNEL); // Dynamically allocate memory based on actual size
+if (!temp_buffer) {
+    kfree(result_buffer);
+    printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Failed to allocate memory for temp buffer\n");
+    mutex_unlock(&kernel_buffer_mutex);
+    return -ENOMEM;
+}
+
+ret = get_results(result_buffer, len + 1);
+if (ret < 0) {
+    printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Failed to retrieve results\n");
+    kfree(result_buffer);
+    kfree(temp_buffer);
+    mutex_unlock(&kernel_buffer_mutex);
+    return ret;
+} else {
+    result_buffer[len] = '\0'; // Ensure null-termination
+    strncpy(temp_buffer, result_buffer, len);
+    temp_buffer[len] = '\0'; // Ensure null-termination
+
+    if (strnlen(temp_buffer, len) + 1 > len) {
+        printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: User buffer too small for results\n");
+        kfree(result_buffer);
+        kfree(temp_buffer);
+        mutex_unlock(&kernel_buffer_mutex);
+        return -EINVAL;
+    }
+
+    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Before copy_to_user\n");
+    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: temp_buffer: %s, len: %zu, temp_buffer size: %zu\n", temp_buffer, len, len + 1);
+    error_count = copy_to_user((void *)buffer, temp_buffer, strnlen(temp_buffer, len) + 1); // Ensure null-terminator is copied
+    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: After copy_to_user, error_count: %d\n", error_count);
+    if (error_count != 0) {
+        printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Failed to copy results to user space\n");
+        kfree(result_buffer);
+        kfree(temp_buffer);
+        mutex_unlock(&kernel_buffer_mutex);
+        return -EFAULT;
+    }
+}
+kfree(result_buffer);
+kfree(temp_buffer);
+
+static void __exit tensorflow_lite_kernel_interpreter_exit(void) {
+    if (kernel_buffer) {
+        kfree(kernel_buffer);
+    }
+    unregister_chrdev(major_number, DEVICE_NAME);
+    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Goodbye from the TensorFlowLiteKernelInterpreter\n");
+}
         kfree(kernel_buffer);
         kernel_buffer = NULL;
     }
