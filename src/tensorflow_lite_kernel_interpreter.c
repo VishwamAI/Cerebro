@@ -90,13 +90,17 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
         return -EINVAL;
     }
 
+    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Before kmalloc for result_buffer\n");
     result_buffer = kmalloc(len + 1, GFP_KERNEL); // Dynamically allocate memory based on actual size
+    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: After kmalloc for result_buffer, result_buffer=%p\n", result_buffer);
     if (!result_buffer) {
         printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Failed to allocate memory for result buffer\n");
         mutex_unlock(&kernel_buffer_mutex);
         return -ENOMEM;
     }
+    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Before kmalloc for temp_buffer\n");
     temp_buffer = kmalloc(len + 1, GFP_KERNEL); // Dynamically allocate memory based on actual size
+    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: After kmalloc for temp_buffer, temp_buffer=%p\n", temp_buffer);
     if (!temp_buffer) {
         kfree(result_buffer);
         printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Failed to allocate memory for temp buffer\n");
