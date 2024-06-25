@@ -138,6 +138,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Kernel buffer state after allocation: %s\n", kernel_buffer ? "Allocated" : "Not Allocated");
 
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Before memcpy, buffer: %s\n", buffer);
+    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Before memcpy, kernel_buffer: %p\n", kernel_buffer);
     if (copy_from_user(kernel_buffer, buffer, len)) {
         printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Failed to copy data from user space\n");
         vfree(kernel_buffer);
