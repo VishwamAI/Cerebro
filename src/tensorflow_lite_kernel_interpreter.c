@@ -101,7 +101,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
         return -ENOMEM;
     }
 
-    if (buffer[len - 1] != '\0' && len == 1023) { // Adjusted null-termination check
+    if (buffer[len - 1] != '\0' && len <= 1023) { // Adjusted null-termination check
         printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Buffer is not null-terminated\n");
         kfree(result_buffer);
         kfree(temp_buffer);
@@ -145,6 +145,10 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
         ret = load_model(model_path);
         if (ret < 0) {
             printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Failed to load model from %s\n", model_path);
+            kfree(result_buffer);
+            kfree(temp_buffer);
+            mutex_unlock(&kernel_buffer_mutex);
+            return ret;
         }
     } else if (len >= 13 && strncmp(buffer, "EXECUTE_MODEL", 13) == 0) {
         // Handle model execution
@@ -155,7 +159,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
             kfree(result_buffer);
             kfree(temp_buffer);
             mutex_unlock(&kernel_buffer_mutex);
-            return -EFAULT;
+            return ret;
         }
     } else if (len >= 11 && strncmp(buffer, "GET_RESULTS", 11) == 0) {
         // Handle retrieving results
@@ -166,7 +170,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
             kfree(result_buffer);
             kfree(temp_buffer);
             mutex_unlock(&kernel_buffer_mutex);
-            return -EFAULT;
+            return ret;
         } else {
             result_buffer[1023] = '\0'; // Ensure null-termination
             strncpy(temp_buffer, result_buffer, 1023);
