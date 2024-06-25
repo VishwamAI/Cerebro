@@ -307,12 +307,22 @@ static int load_computation_graph(struct tensorflow_lite_model *model) {
 }
 
 static int execute_computation_graph(struct tensorflow_lite_model *model) {
-    int result = 42;
+    int result = 0;
     if (!model || !model->graph) {
         printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Invalid model or graph\n");
         return -EINVAL;
     }
-    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Computation graph executed\n");
+
+    // Implement the actual logic for executing the computation graph
+    // For simplicity, assume the graph is a sequence of operations that can be executed in order
+    // This is a placeholder implementation and should be replaced with actual execution logic
+    // Iterate through the graph and execute each operation
+    for (size_t i = 0; i < model->parameters; i++) {
+        // Execute the operation (placeholder)
+        result += ((char *)model->graph)[i];
+    }
+
+    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Computation graph executed with result %d\n", result);
     return result;
 }
 
