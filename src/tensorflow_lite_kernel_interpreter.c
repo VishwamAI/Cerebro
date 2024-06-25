@@ -54,7 +54,6 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
     int error_count;
     struct sysinfo mem_info;
     int retry_count;
-    int err;
 
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Entering dev_write function\n");
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: buffer=%p, len=%zu\n", buffer, len);
@@ -110,6 +109,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
 
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: vmalloc returned %p\n", kernel_buffer);
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: After vmalloc, in_atomic() = %d\n", in_atomic());
+    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: current->flags = %lx\n", (long unsigned int)current->flags);
     if (!kernel_buffer) {
         printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Failed to allocate memory for kernel buffer with vmalloc, attempting kmalloc\n");
 
@@ -119,6 +119,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
                mem_info.totalram, mem_info.freeram, mem_info.freeram + mem_info.bufferram);
 
         printk(KERN_INFO "TensorFlowLiteKernelInterpreter: in_atomic() before kmalloc = %d\n", in_atomic());
+        printk(KERN_INFO "TensorFlowLiteKernelInterpreter: current->flags = %lx\n", (long unsigned int)current->flags);
         if (in_atomic()) {
             printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Cannot allocate memory with kmalloc in atomic context\n");
             mutex_unlock(&kernel_buffer_mutex);
