@@ -106,16 +106,6 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
     }
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Allocated memory for temp buffer at %p, size: %zu\n", temp_buffer, len + 1);
 
-    if (!kernel_buffer) {
-        kernel_buffer = kmalloc(1024, GFP_KERNEL); // Allocate kernel_buffer if not already allocated
-        if (!kernel_buffer) {
-            kfree(result_buffer);
-            kfree(temp_buffer);
-            printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Failed to allocate memory for kernel buffer\n");
-            return -ENOMEM;
-        }
-    }
-
     if (!mutex_trylock(&kernel_buffer_mutex)) {
         kfree(result_buffer);
         kfree(temp_buffer);
@@ -123,6 +113,17 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
         return -EBUSY;
     }
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Mutex locked\n");
+
+    if (!kernel_buffer) {
+        kernel_buffer = kmalloc(1024, GFP_KERNEL); // Allocate kernel_buffer if not already allocated
+        if (!kernel_buffer) {
+            kfree(result_buffer);
+            kfree(temp_buffer);
+            mutex_unlock(&kernel_buffer_mutex);
+            printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Failed to allocate memory for kernel buffer\n");
+            return -ENOMEM;
+        }
+    }
 
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Before snprintf\n");
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: buffer: %s, len: %zu\n", buffer, len);
