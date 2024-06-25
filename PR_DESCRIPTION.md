@@ -1,14 +1,16 @@
-# Pull Request: Optimize Memory Allocation and Improve Error Handling in dev_write Function
+# Pull Request: Add Detailed Logging and Retry Logic for Memory Allocation in dev_write Function
 
 ## Summary
 This pull request addresses the following changes:
-- Optimizes memory allocation in the `dev_write` function in `tensorflow_lite_kernel_interpreter.c` to reduce unnecessary allocations.
+- Adds detailed logging to the `dev_write` function in `tensorflow_lite_kernel_interpreter.c` to capture the state of the system memory and kernel buffer before and after critical operations.
+- Implements retry logic for memory allocation using `vmalloc` and `kmalloc` to handle allocation failures more gracefully.
 - Ensures proper mutex handling to prevent potential deadlocks.
 - Improves error handling to return appropriate error codes when an error occurs.
 
 ## Changes
 ### `tensorflow_lite_kernel_interpreter.c`
-- Modified the `dev_write` function to only allocate `result_buffer` and `temp_buffer` when necessary for the operation being performed.
+- Added detailed logging to capture the state of the system memory and kernel buffer before and after critical operations.
+- Implemented retry logic for `vmalloc` and `kmalloc` with delays between retries to handle memory allocation failures more gracefully.
 - Ensured that `kernel_buffer` is only allocated once and reused, rather than being allocated every time `dev_write` is called.
 - Reviewed the mutex locking and unlocking to ensure that the mutex is always released, even if the function exits early.
 - Updated the error handling to return appropriate error codes when an error occurs, rather than the length of `kernel_buffer`.
