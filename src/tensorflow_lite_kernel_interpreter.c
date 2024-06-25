@@ -77,6 +77,11 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
         return -EINVAL;
     }
 
+    if (buffer[len - 1] != '\0' && len <= 1023) { // Adjusted null-termination check
+        printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Buffer is not null-terminated\n");
+        return -EINVAL;
+    }
+
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Before allocating memory for result buffer\n");
     result_buffer = kmalloc(1024, GFP_KERNEL);
     if (!result_buffer) {
@@ -99,13 +104,6 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
         kfree(temp_buffer);
         printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Kernel buffer not allocated\n");
         return -ENOMEM;
-    }
-
-    if (buffer[len - 1] != '\0' && len <= 1023) { // Adjusted null-termination check
-        printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Buffer is not null-terminated\n");
-        kfree(result_buffer);
-        kfree(temp_buffer);
-        return -EINVAL;
     }
 
     mutex_lock(&kernel_buffer_mutex);
