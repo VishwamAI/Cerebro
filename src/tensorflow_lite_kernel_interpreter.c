@@ -107,6 +107,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Before snprintf\n");
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: buffer: %s, len: %zu\n", buffer, len);
     snprintf_ret = snprintf(kernel_buffer, 1023, "%.*s(%zu letters)", (int)(len), buffer, len);
+    kernel_buffer[1023] = '\0'; // Ensure null-termination
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: After snprintf, snprintf_ret: %d, kernel_buffer: %s\n", snprintf_ret, kernel_buffer);
     if (snprintf_ret < 0) {
         printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: snprintf failed\n");
@@ -118,7 +119,6 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
         mutex_unlock(&kernel_buffer_mutex);
         return -EINVAL;
     }
-    kernel_buffer[1023] = '\0'; // Ensure null-termination
 
     if (len >= 10 && strncmp(buffer, "LOAD_MODEL", 10) == 0) {
         printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Before sscanf\n");
