@@ -159,20 +159,20 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
             printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Failed to retrieve results\n");
             goto cleanup;
         } else {
-            result_buffer[1023] = '\0'; // Ensure null-termination
+            result_buffer[len] = '\0'; // Ensure null-termination
             strncpy(temp_buffer, result_buffer, len);
             temp_buffer[len] = '\0'; // Ensure null-termination
             printk(KERN_INFO "TensorFlowLiteKernelInterpreter: temp_buffer after strncpy: %s\n", temp_buffer);
 
-            if (strnlen(temp_buffer, 1024) + 1 > 1024) {
+            if (strnlen(temp_buffer, len) + 1 > len) {
                 printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: User buffer too small for results\n");
                 goto cleanup;
             }
 
             printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Preparing to copy results to user space\n");
             printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Before copy_to_user\n");
-            printk(KERN_INFO "TensorFlowLiteKernelInterpreter: buffer address: %p, temp_buffer address: %p, temp_buffer length: %zu\n", buffer, temp_buffer, strnlen(temp_buffer, 1024));
-            error_count = copy_to_user((void *)buffer, temp_buffer, strnlen(temp_buffer, 1024) + 1); // Ensure null-terminator is copied
+            printk(KERN_INFO "TensorFlowLiteKernelInterpreter: buffer address: %p, temp_buffer address: %p, temp_buffer length: %zu\n", buffer, temp_buffer, strnlen(temp_buffer, len));
+            error_count = copy_to_user((void *)buffer, temp_buffer, strnlen(temp_buffer, len) + 1); // Ensure null-terminator is copied
             printk(KERN_INFO "TensorFlowLiteKernelInterpreter: After copy_to_user\n");
             if (error_count != 0) {
                 printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Failed to copy results to user space\n");
