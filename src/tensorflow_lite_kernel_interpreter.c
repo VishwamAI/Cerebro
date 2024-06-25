@@ -102,7 +102,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
             printk(KERN_INFO "TensorFlowLiteKernelInterpreter: vmalloc succeeded, kernel_buffer=%p\n", kernel_buffer);
             break;
         }
-        printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: vmalloc failed with error code %ld, retrying... (%d retries left)\n", PTR_ERR(kernel_buffer), retry_count - 1);
+        printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: vmalloc failed, retrying... (%d retries left)\n", retry_count - 1);
         si_meminfo(&mem_info); // Log system memory usage after vmalloc failure
         printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Memory after vmalloc failure - Total: %lu, Free: %lu, Available: %lu\n",
                mem_info.totalram, mem_info.freeram, mem_info.freeram + mem_info.bufferram);
@@ -139,7 +139,6 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
                 break;
             }
             printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: kmalloc failed, retrying... (%d retries left)\n", retry_count - 1);
-            printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: kmalloc error code: %ld\n", PTR_ERR(kernel_buffer));
             si_meminfo(&mem_info); // Log system memory usage after kmalloc failure
             printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Memory after kmalloc failure - Total: %lu, Free: %lu, Available: %lu\n",
                    mem_info.totalram, mem_info.freeram, mem_info.freeram + mem_info.bufferram);
@@ -402,9 +401,11 @@ int execute_model(void) {
         printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: snprintf output was truncated\n");
         vfree(kernel_buffer);
         kernel_buffer = NULL;
+        mutex_unlock(&kernel_buffer_mutex);
         return -EINVAL;
     }
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: snprintf completed, kernel_buffer: %s\n", kernel_buffer);
+    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: snprintf returned %d\n", snprintf_ret);
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Model executed\n");
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: kernel_buffer after execution: %s\n", kernel_buffer);
 
