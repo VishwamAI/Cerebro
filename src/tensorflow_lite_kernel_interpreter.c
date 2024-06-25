@@ -102,7 +102,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
             printk(KERN_INFO "TensorFlowLiteKernelInterpreter: vmalloc succeeded, kernel_buffer=%p\n", kernel_buffer);
             break;
         }
-        printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: vmalloc failed, retrying... (%d retries left)\n", retry_count - 1);
+        printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: vmalloc failed with error code %ld, retrying... (%d retries left)\n", PTR_ERR(kernel_buffer), retry_count - 1);
         msleep(200); // Increase the delay between retries
         retry_count--;
     }
@@ -135,7 +135,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
                 printk(KERN_INFO "TensorFlowLiteKernelInterpreter: kmalloc succeeded, kernel_buffer=%p\n", kernel_buffer);
                 break;
             }
-            printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: kmalloc failed, retrying... (%d retries left)\n", retry_count - 1);
+            printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: kmalloc failed with error code %ld, retrying... (%d retries left)\n", PTR_ERR(kernel_buffer), retry_count - 1);
             msleep(100); // Introduce a delay between retries
             retry_count--;
         }
