@@ -107,10 +107,13 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Allocated memory for temp buffer at %p, size: %zu\n", temp_buffer, len + 1);
 
     if (!kernel_buffer) {
-        kfree(result_buffer);
-        kfree(temp_buffer);
-        printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Kernel buffer not allocated\n");
-        return -ENOMEM;
+        kernel_buffer = kmalloc(1024, GFP_KERNEL); // Allocate kernel_buffer if not already allocated
+        if (!kernel_buffer) {
+            kfree(result_buffer);
+            kfree(temp_buffer);
+            printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Failed to allocate memory for kernel buffer\n");
+            return -ENOMEM;
+        }
     }
 
     if (!mutex_trylock(&kernel_buffer_mutex)) {
@@ -124,7 +127,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Before snprintf\n");
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: buffer: %s, len: %zu\n", buffer, len);
     snprintf_ret = snprintf(kernel_buffer, 1023, "%.*s(%zu letters)", (int)(len), buffer, len);
-    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: After snprintf, snprintf_ret: %d, kernel_buffer: %s, kernel_buffer size: %zu\n", snprintf_ret, kernel_buffer, sizeof(kernel_buffer));
+    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: After snprintf, snprintf_ret: %d, kernel_buffer: %s\n", snprintf_ret, kernel_buffer);
     if (snprintf_ret < 0) {
         printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: snprintf failed\n");
         goto cleanup;
@@ -171,7 +174,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
             }
 
             printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Before copy_to_user\n");
-            printk(KERN_INFO "TensorFlowLiteKernelInterpreter: temp_buffer: %s, len: %zu, temp_buffer size: %zu\n", temp_buffer, len, sizeof(temp_buffer));
+            printk(KERN_INFO "TensorFlowLiteKernelInterpreter: temp_buffer: %s, len: %zu, temp_buffer size: %zu\n", temp_buffer, len, len + 1);
             error_count = copy_to_user((void *)buffer, temp_buffer, strnlen(temp_buffer, len) + 1); // Ensure null-terminator is copied
             printk(KERN_INFO "TensorFlowLiteKernelInterpreter: After copy_to_user, error_count: %d\n", error_count);
             if (error_count != 0) {
