@@ -50,6 +50,7 @@ static int dev_release(struct inode *inodep, struct file *filep) {
 
 static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, loff_t *offset) {
     int ret;
+    int snprintf_ret;
     char *result_buffer = NULL;
     int error_count;
     struct sysinfo mem_info;
@@ -157,6 +158,9 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
         return -ENOMEM;
     }
 
+    // Additional logging to verify kernel buffer integrity before processing commands
+    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Kernel buffer before processing commands: %s\n", kernel_buffer);
+
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Before memcpy, buffer: %s\n", buffer);
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Before memcpy, kernel_buffer: %p\n", kernel_buffer);
     if (!kernel_buffer) {
@@ -250,6 +254,20 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
     }
 
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: After snprintf, kernel_buffer: %s\n", kernel_buffer);
+    if (snprintf_ret < 0) {
+        printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: snprintf failed with error code %d\n", snprintf_ret);
+        vfree(kernel_buffer);
+        kernel_buffer = NULL;
+        mutex_unlock(&kernel_buffer_mutex);
+        return snprintf_ret;
+    } else if (snprintf_ret >= 1024) {
+        printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: snprintf output was truncated\n");
+        vfree(kernel_buffer);
+        kernel_buffer = NULL;
+        mutex_unlock(&kernel_buffer_mutex);
+        return -EINVAL;
+    }
+    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: snprintf completed successfully, kernel_buffer: %s\n", kernel_buffer);
 
     vfree(kernel_buffer);
     kernel_buffer = NULL;
