@@ -45,7 +45,7 @@ static ssize_t dev_read(struct file *filep, char *buffer, size_t len, loff_t *of
 
     if (error_count == 0) {
         printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Sent %zu characters to the user\n", len);
-        return 0;
+        return len;
     } else {
         printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Failed to send %d characters to the user\n", error_count);
         return -EFAULT;
@@ -53,70 +53,165 @@ static ssize_t dev_read(struct file *filep, char *buffer, size_t len, loff_t *of
 }
 
 static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, loff_t *offset) {
+    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Entering dev_write function\n");
     char model_path[128];
     int ret;
     char *result_buffer;
     char *temp_buffer;
     int error_count;
+    int snprintf_ret;
+    static DEFINE_MUTEX(kernel_buffer_mutex);
 
+    if (!buffer) {
+        printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Null buffer received\n");
+        return -EINVAL;
+    }
+
+    if (len > 1023) { // Adjusted to leave space for null terminator
+        printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Buffer length exceeds limit\n");
+        return -EINVAL;
+    }
+
+    if (len < 1) {
+        printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Buffer length is too small\n");
+        return -EINVAL;
+    }
+
+    if (buffer[len - 1] != '\0' && len <= 1023) { // Adjusted null-termination check
+        printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Buffer is not null-terminated\n");
+        return -EINVAL;
+    }
+
+    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Before allocating memory for result buffer\n");
     result_buffer = kmalloc(1024, GFP_KERNEL);
     if (!result_buffer) {
         printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Failed to allocate memory for result buffer\n");
         return -ENOMEM;
     }
+    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Allocated memory for result buffer at %p\n", result_buffer);
 
+    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Before allocating memory for temp buffer\n");
     temp_buffer = kmalloc(1024, GFP_KERNEL);
     if (!temp_buffer) {
         kfree(result_buffer);
         printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Failed to allocate memory for temp buffer\n");
         return -ENOMEM;
     }
+    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Allocated memory for temp buffer at %p\n", temp_buffer);
 
-    sprintf(kernel_buffer, "%s(%zu letters)", buffer, len);
+    if (!kernel_buffer) {
+        kfree(result_buffer);
+        kfree(temp_buffer);
+        printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Kernel buffer not allocated\n");
+        return -ENOMEM;
+    }
+
+    mutex_lock(&kernel_buffer_mutex);
+    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Mutex locked\n");
+    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Preparing to format kernel_buffer with snprintf\n");
+    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: buffer: %s, len: %zu\n", buffer, len);
+    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: kernel_buffer before snprintf: %s, address: %p\n", kernel_buffer, kernel_buffer);
+    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Before snprintf\n");
+    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: kernel_buffer address: %p, buffer address: %p, len: %zu\n", kernel_buffer, buffer, len);
+    snprintf_ret = snprintf(kernel_buffer, 1022, "%.*s(%zu letters)", (int)(len), buffer, len);
+    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: After snprintf\n");
+    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: snprintf_ret: %d, kernel_buffer: %s\n", snprintf_ret, kernel_buffer);
+    if (snprintf_ret >= 1022) {
+        printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: snprintf output was truncated\n");
+        kfree(result_buffer);
+        kfree(temp_buffer);
+        mutex_unlock(&kernel_buffer_mutex);
+        printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Mutex unlocked\n");
+        return -EINVAL;
+    }
+    kernel_buffer[1023] = '\0'; // Ensure null-termination
+    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: kernel_buffer after snprintf: %s, address: %p\n", kernel_buffer, kernel_buffer);
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Received %zu characters from the user\n", len);
 
     // Command handling logic
-    if (strncmp(buffer, "LOAD_MODEL", 10) == 0) {
-        // Handle model loading
+    if (len >= 10 && strncmp(buffer, "LOAD_MODEL", 10) == 0) {
         printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Loading model\n");
-        // Load the model from the specified path into kernel memory
-        // For simplicity, assume the model path is provided after the command
-        sscanf(buffer + 11, "%s", model_path);
+        printk(KERN_INFO "TensorFlowLiteKernelInterpreter: buffer: %s\n", buffer);
+        if (sscanf(buffer + 11, "%127s", model_path) != 1) {
+            printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Failed to parse model path\n");
+            printk(KERN_INFO "TensorFlowLiteKernelInterpreter: model_path: %s\n", model_path);
+            kfree(result_buffer);
+            kfree(temp_buffer);
+            mutex_unlock(&kernel_buffer_mutex);
+            printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Mutex unlocked\n");
+            return -EINVAL;
+        }
+        printk(KERN_INFO "TensorFlowLiteKernelInterpreter: model_path: %s\n", model_path);
         ret = load_model(model_path);
         if (ret < 0) {
             printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Failed to load model from %s\n", model_path);
+            kfree(result_buffer);
+            kfree(temp_buffer);
+            mutex_unlock(&kernel_buffer_mutex);
+            return ret;
         }
-    } else if (strncmp(buffer, "EXECUTE_MODEL", 13) == 0) {
+    } else if (len >= 13 && strncmp(buffer, "EXECUTE_MODEL", 13) == 0) {
         // Handle model execution
         printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Executing model\n");
         ret = execute_model();
         if (ret < 0) {
             printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Failed to execute model\n");
+            kfree(result_buffer);
+            kfree(temp_buffer);
+            mutex_unlock(&kernel_buffer_mutex);
+            return ret;
         }
-    } else if (strncmp(buffer, "GET_RESULTS", 11) == 0) {
+    } else if (len >= 11 && strncmp(buffer, "GET_RESULTS", 11) == 0) {
         // Handle retrieving results
         printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Retrieving results\n");
-        ret = get_results(result_buffer, sizeof(result_buffer));
+        ret = get_results(result_buffer, 1024);
         if (ret < 0) {
             printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Failed to retrieve results\n");
+            kfree(result_buffer);
+            kfree(temp_buffer);
+            mutex_unlock(&kernel_buffer_mutex);
+            return ret;
         } else {
-            strncpy(temp_buffer, result_buffer, 1024);
-            error_count = copy_to_user((void *)buffer, temp_buffer, strlen(temp_buffer) + 1);
+            result_buffer[1023] = '\0'; // Ensure null-termination
+            strncpy(temp_buffer, result_buffer, 1023);
+            temp_buffer[1023] = '\0'; // Ensure null-termination
+            printk(KERN_INFO "TensorFlowLiteKernelInterpreter: temp_buffer after strncpy: %s\n", temp_buffer);
+
+            if (strnlen(temp_buffer, 1024) + 1 > 1024) {
+                printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: User buffer too small for results\n");
+                kfree(result_buffer);
+                kfree(temp_buffer);
+                mutex_unlock(&kernel_buffer_mutex);
+                return -EINVAL;
+            }
+
+            printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Preparing to copy results to user space\n");
+            printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Before copy_to_user\n");
+            printk(KERN_INFO "TensorFlowLiteKernelInterpreter: buffer address: %p, temp_buffer address: %p, temp_buffer length: %zu\n", buffer, temp_buffer, strnlen(temp_buffer, 1024));
+            error_count = copy_to_user((void *)buffer, temp_buffer, strnlen(temp_buffer, 1024));
+            printk(KERN_INFO "TensorFlowLiteKernelInterpreter: After copy_to_user\n");
             if (error_count != 0) {
                 printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Failed to copy results to user space\n");
                 kfree(result_buffer);
                 kfree(temp_buffer);
+                mutex_unlock(&kernel_buffer_mutex);
                 return -EFAULT;
             }
+            printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Successfully copied results to user space\n");
         }
     } else {
         printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Unknown command\n");
     }
 
     kfree(result_buffer);
+    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Freed result buffer\n");
     kfree(temp_buffer);
+    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Freed temp buffer\n");
+    mutex_unlock(&kernel_buffer_mutex);
+    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Mutex unlocked\n");
+    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Exiting dev_write function\n");
 
-    return len;
+    return strnlen(kernel_buffer, 1024);
 }
 
 // Function to load the model from the specified path into kernel memory
