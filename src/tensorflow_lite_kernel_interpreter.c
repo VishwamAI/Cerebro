@@ -102,14 +102,11 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
             printk(KERN_INFO "TensorFlowLiteKernelInterpreter: vmalloc succeeded, kernel_buffer=%p\n", kernel_buffer);
             break;
         }
-        printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: vmalloc failed with error code %ld, retrying... (%d retries left)\n", PTR_ERR(kernel_buffer), retry_count - 1);
+        printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: vmalloc failed, retrying... (%d retries left)\n", retry_count - 1);
         msleep(200); // Increase the delay between retries
         retry_count--;
     }
 
-    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: vmalloc returned %p\n", kernel_buffer);
-    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: After vmalloc, in_atomic() = %d\n", in_atomic());
-    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: current->flags = %lx\n", (long unsigned int)current->flags);
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: vmalloc returned %p\n", kernel_buffer);
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: After vmalloc, in_atomic() = %d\n", in_atomic());
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: current->flags = %lx\n", (long unsigned int)current->flags);
@@ -138,7 +135,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
                 printk(KERN_INFO "TensorFlowLiteKernelInterpreter: kmalloc succeeded, kernel_buffer=%p\n", kernel_buffer);
                 break;
             }
-            printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: kmalloc failed with error code %ld, retrying... (%d retries left)\n", PTR_ERR(kernel_buffer), retry_count - 1);
+            printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: kmalloc failed, retrying... (%d retries left)\n", retry_count - 1);
             msleep(100); // Introduce a delay between retries
             retry_count--;
         }
@@ -146,12 +143,6 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
         printk(KERN_INFO "TensorFlowLiteKernelInterpreter: kmalloc returned %p\n", kernel_buffer);
         if (!kernel_buffer) {
             printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Failed to allocate memory for kernel buffer with kmalloc\n");
-
-            // Log system memory usage immediately after kmalloc failure
-            si_meminfo(&mem_info);
-            printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Memory immediately after kmalloc failure - Total: %lu, Free: %lu, Available: %lu\n",
-                   mem_info.totalram, mem_info.freeram, mem_info.freeram + mem_info.bufferram);
-
             mutex_unlock(&kernel_buffer_mutex);
             return -ENOMEM;
         }
