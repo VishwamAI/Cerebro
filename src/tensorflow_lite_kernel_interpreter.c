@@ -103,6 +103,9 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
             break;
         }
         printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: vmalloc failed with error code %ld, retrying... (%d retries left)\n", PTR_ERR(kernel_buffer), retry_count - 1);
+        si_meminfo(&mem_info); // Log system memory usage after vmalloc failure
+        printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Memory after vmalloc failure - Total: %lu, Free: %lu, Available: %lu\n",
+               mem_info.totalram, mem_info.freeram, mem_info.freeram + mem_info.bufferram);
         msleep(200); // Increase the delay between retries
         retry_count--;
     }
@@ -135,7 +138,11 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
                 printk(KERN_INFO "TensorFlowLiteKernelInterpreter: kmalloc succeeded, kernel_buffer=%p\n", kernel_buffer);
                 break;
             }
-            printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: kmalloc failed with error code %ld, retrying... (%d retries left)\n", PTR_ERR(kernel_buffer), retry_count - 1);
+            printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: kmalloc failed, retrying... (%d retries left)\n", retry_count - 1);
+            printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: kmalloc error code: %ld\n", PTR_ERR(kernel_buffer));
+            si_meminfo(&mem_info); // Log system memory usage after kmalloc failure
+            printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Memory after kmalloc failure - Total: %lu, Free: %lu, Available: %lu\n",
+                   mem_info.totalram, mem_info.freeram, mem_info.freeram + mem_info.bufferram);
             msleep(100); // Introduce a delay between retries
             retry_count--;
         }
