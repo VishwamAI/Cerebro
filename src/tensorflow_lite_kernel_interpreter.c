@@ -97,6 +97,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
 
     retry_count = 5;
     while (retry_count > 0) {
+        printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Attempting vmalloc, retry_count=%d\n", retry_count);
         kernel_buffer = vmalloc(len + 1);
         if (kernel_buffer) {
             printk(KERN_INFO "TensorFlowLiteKernelInterpreter: vmalloc succeeded, kernel_buffer=%p\n", kernel_buffer);
@@ -121,6 +122,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
 
         retry_count = 3;
         while (retry_count > 0) {
+            printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Attempting kmalloc, retry_count=%d\n", retry_count);
             kernel_buffer = kmalloc(len + 1, GFP_KERNEL);
             if (kernel_buffer) {
                 printk(KERN_INFO "TensorFlowLiteKernelInterpreter: kmalloc succeeded, kernel_buffer=%p\n", kernel_buffer);
