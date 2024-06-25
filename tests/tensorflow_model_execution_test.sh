@@ -9,7 +9,7 @@ ulimit -a
 lsof | wc -l
 
 # Load the TensorFlow model into the kernel
-echo "LOAD_MODEL /home/ubuntu/Cerebro/models/sample_model.tflite" > /dev/tensorflow_interpreter_device
+echo "LOAD_MODEL /home/ubuntu/Cerebro/models/mobilenet_v1_1.0_224_quant.tflite" > /dev/tensorflow_interpreter_device
 if [ $? -ne 0 ]; then
     echo "Error: Failed to load model" >&2
     exit 1
@@ -54,8 +54,11 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# Log system resource usage
+# Log system resource usage after reading results
 echo "Logging system resource usage after reading results..."
 free -m
 ulimit -a
 lsof | wc -l
+
+# Additional logging for debugging
+echo "Test script completed successfully"
