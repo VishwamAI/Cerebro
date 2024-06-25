@@ -95,18 +95,21 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
         return -EFAULT;
     }
 
-    retry_count = 3;
+    retry_count = 5; // Increase the number of retries
     while (retry_count > 0) {
         kernel_buffer = vmalloc(len + 1);
         if (kernel_buffer) {
             printk(KERN_INFO "TensorFlowLiteKernelInterpreter: vmalloc succeeded, kernel_buffer=%p\n", kernel_buffer);
             break;
         }
-        printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: vmalloc failed, retrying... (%d retries left)\n", retry_count - 1);
-        msleep(100); // Introduce a delay between retries
+        printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: vmalloc failed with error code %ld, retrying... (%d retries left)\n", PTR_ERR(kernel_buffer), retry_count - 1);
+        msleep(200); // Increase the delay between retries
         retry_count--;
     }
 
+    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: vmalloc returned %p\n", kernel_buffer);
+    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: After vmalloc, in_atomic() = %d\n", in_atomic());
+    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: current->flags = %lx\n", (long unsigned int)current->flags);
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: vmalloc returned %p\n", kernel_buffer);
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: After vmalloc, in_atomic() = %d\n", in_atomic());
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: current->flags = %lx\n", (long unsigned int)current->flags);
@@ -135,7 +138,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
                 printk(KERN_INFO "TensorFlowLiteKernelInterpreter: kmalloc succeeded, kernel_buffer=%p\n", kernel_buffer);
                 break;
             }
-            printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: kmalloc failed, retrying... (%d retries left)\n", retry_count - 1);
+            printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: kmalloc failed with error code %ld, retrying... (%d retries left)\n", PTR_ERR(kernel_buffer), retry_count - 1);
             msleep(100); // Introduce a delay between retries
             retry_count--;
         }
