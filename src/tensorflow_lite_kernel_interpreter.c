@@ -178,6 +178,15 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
         return -EFAULT;
     }
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: After memcpy, kernel_buffer: %s\n", kernel_buffer);
+
+    if (len >= 1024) {
+        printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Input length exceeds buffer limit after copy\n");
+        vfree(kernel_buffer);
+        kernel_buffer = NULL;
+        mutex_unlock(&kernel_buffer_mutex);
+        return -EINVAL;
+    }
+
     kernel_buffer[len] = '\0'; // Ensure null-termination
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Kernel buffer state after null-termination: %s\n", kernel_buffer);
 
@@ -203,6 +212,21 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
         printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Executing model\n");
         ret = execute_model();
         printk(KERN_INFO "TensorFlowLiteKernelInterpreter: execute_model function returned %d\n", ret);
+        snprintf_ret = snprintf(kernel_buffer, 1024, "Model execution result: %d", ret);
+        if (snprintf_ret < 0) {
+            printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: snprintf failed with error code %d\n", snprintf_ret);
+            vfree(kernel_buffer);
+            kernel_buffer = NULL;
+            mutex_unlock(&kernel_buffer_mutex);
+            return snprintf_ret;
+        } else if (snprintf_ret >= 1024) {
+            printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: snprintf output was truncated\n");
+            vfree(kernel_buffer);
+            kernel_buffer = NULL;
+            mutex_unlock(&kernel_buffer_mutex);
+            return -EINVAL;
+        }
+        printk(KERN_INFO "TensorFlowLiteKernelInterpreter: snprintf completed successfully, kernel_buffer: %s\n", kernel_buffer);
         if (ret < 0) {
             printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: Model execution failed\n");
             vfree(kernel_buffer);
@@ -407,7 +431,13 @@ int execute_model(void) {
     }
 
     snprintf_ret = snprintf(kernel_buffer, 1024, "Model execution result: %d", ret);
-    if (snprintf_ret >= 1024) {
+    if (snprintf_ret < 0) {
+        printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: snprintf failed with error code %d\n", snprintf_ret);
+        vfree(kernel_buffer);
+        kernel_buffer = NULL;
+        mutex_unlock(&kernel_buffer_mutex);
+        return snprintf_ret;
+    } else if (snprintf_ret >= 1024) {
         printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: snprintf output was truncated\n");
         vfree(kernel_buffer);
         kernel_buffer = NULL;
@@ -568,11 +598,14 @@ static int get_results(char *result_buffer, size_t buffer_size) {
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: result_buffer before snprintf: %s\n", result_buffer);
 
     snprintf_ret = snprintf(result_buffer, buffer_size, "%s", kernel_buffer);
-    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: snprintf completed, result_buffer: %s\n", result_buffer);
-    if (snprintf_ret >= buffer_size) {
+    if (snprintf_ret < 0) {
+        printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: snprintf failed with error code %d\n", snprintf_ret);
+        return snprintf_ret;
+    } else if (snprintf_ret >= buffer_size) {
         printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: snprintf output was truncated\n");
         return -EINVAL;
     }
+    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: snprintf completed, result_buffer: %s\n", result_buffer);
 
     // Log system memory usage after retrieving results
     si_meminfo(&mem_info);
