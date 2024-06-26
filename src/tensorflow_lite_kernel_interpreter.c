@@ -107,9 +107,21 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
         if (!kernel_buffer) {
             printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: kmalloc failed, attempting vmalloc\n");
             kernel_buffer = vmalloc(len + 1);
+            if (!kernel_buffer) {
+                printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: vmalloc also failed\n");
+            } else {
+                printk(KERN_INFO "TensorFlowLiteKernelInterpreter: vmalloc succeeded, kernel_buffer allocated at %p\n", kernel_buffer);
+            }
+        } else {
+            printk(KERN_INFO "TensorFlowLiteKernelInterpreter: kmalloc succeeded, kernel_buffer allocated at %p\n", kernel_buffer);
         }
     } else {
         kernel_buffer = vmalloc(len + 1);
+        if (!kernel_buffer) {
+            printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: vmalloc failed\n");
+        } else {
+            printk(KERN_INFO "TensorFlowLiteKernelInterpreter: vmalloc succeeded, kernel_buffer allocated at %p\n", kernel_buffer);
+        }
     }
 
     if (!kernel_buffer) {
