@@ -101,16 +101,19 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
         kernel_buffer = vmalloc(len + 1);
         if (kernel_buffer) {
             printk(KERN_INFO "TensorFlowLiteKernelInterpreter: vmalloc succeeded, kernel_buffer=%p\n", kernel_buffer);
+            si_meminfo(&mem_info);
+            printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Memory after successful vmalloc - Total: %lu, Free: %lu, Available: %lu\n",
+                   mem_info.totalram, mem_info.freeram, mem_info.freeram + mem_info.bufferram);
             break;
         } else {
             printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: vmalloc failed, kernel_buffer is NULL\n");
+            printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: vmalloc failed, retrying... (%d retries left)\n", retry_count - 1);
+            si_meminfo(&mem_info);
+            printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Memory after vmalloc failure - Total: %lu, Free: %lu, Available: %lu\n",
+                   mem_info.totalram, mem_info.freeram, mem_info.freeram + mem_info.bufferram);
+            msleep(200);
+            retry_count--;
         }
-        printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: vmalloc failed, retrying... (%d retries left)\n", retry_count - 1);
-        si_meminfo(&mem_info);
-        printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Memory after vmalloc failure - Total: %lu, Free: %lu, Available: %lu\n",
-               mem_info.totalram, mem_info.freeram, mem_info.freeram + mem_info.bufferram);
-        msleep(200);
-        retry_count--;
     }
 
     if (!kernel_buffer) {
@@ -126,16 +129,19 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
             kernel_buffer = kmalloc(len + 1, GFP_KERNEL);
             if (kernel_buffer) {
                 printk(KERN_INFO "TensorFlowLiteKernelInterpreter: kmalloc succeeded, kernel_buffer=%p\n", kernel_buffer);
+                si_meminfo(&mem_info);
+                printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Memory after successful kmalloc - Total: %lu, Free: %lu, Available: %lu\n",
+                       mem_info.totalram, mem_info.freeram, mem_info.freeram + mem_info.bufferram);
                 break;
             } else {
                 printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: kmalloc failed, kernel_buffer is NULL\n");
+                printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: kmalloc failed, retrying... (%d retries left)\n", retry_count - 1);
+                si_meminfo(&mem_info);
+                printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Memory after kmalloc failure - Total: %lu, Free: %lu, Available: %lu\n",
+                       mem_info.totalram, mem_info.freeram, mem_info.freeram + mem_info.bufferram);
+                msleep(100);
+                retry_count--;
             }
-            printk(KERN_ALERT "TensorFlowLiteKernelInterpreter: kmalloc failed, retrying... (%d retries left)\n", retry_count - 1);
-            si_meminfo(&mem_info);
-            printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Memory after kmalloc failure - Total: %lu, Free: %lu, Available: %lu\n",
-                   mem_info.totalram, mem_info.freeram, mem_info.freeram + mem_info.bufferram);
-            msleep(100);
-            retry_count--;
         }
 
         if (!kernel_buffer) {
