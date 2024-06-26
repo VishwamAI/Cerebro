@@ -54,7 +54,6 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
     char *result_buffer = NULL;
     int error_count;
     struct sysinfo mem_info;
-    int retry_count;
 
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Entering dev_write function\n");
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: buffer=%p, len=%zu\n", buffer, len);
