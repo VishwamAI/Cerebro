@@ -118,6 +118,8 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
         return -ENOMEM;
     }
 
+    printk(KERN_INFO "TensorFlowLiteKernelInterpreter: kernel_buffer allocated at %p\n", kernel_buffer);
+
     printk(KERN_INFO "TensorFlowLiteKernelInterpreter: Successfully allocated kernel buffer with size %zu\n", len + 1);
 
     // Log system memory usage after successful allocation
