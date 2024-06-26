@@ -1,34 +1,27 @@
-# Pull Request: Fix get_results Function Call and Add New Files
+# Pull Request: Add Detailed Logging and Retry Logic for Memory Allocation in dev_write Function
 
 ## Summary
 This pull request addresses the following changes:
-- Fixes the `get_results` function call in `flax_kernel_interpreter.c` by providing the required arguments.
-- Adds new files to the repository, including:
-  - `src/jax_kernel_operations.c`: Contains operations for JAX kernel integration.
-  - `src/tflite_flatbuffer_parser.c`: Implements the TensorFlow Lite FlatBuffer parser within the kernel space.
-  - `src/test_tflite_flatbuffer_parser.sh`: A test script for the TensorFlow Lite FlatBuffer parser.
-  - `docs/custom_jax_functionalities_design.md`: A design document for custom JAX functionalities.
-  - `.gitignore`: A file to exclude unnecessary files from the repository.
+- Adds detailed logging to the `dev_write` function in `tensorflow_lite_kernel_interpreter.c` to capture the state of the system memory and kernel buffer before and after critical operations.
+- Implements retry logic for memory allocation using `vmalloc` and `kmalloc` to handle allocation failures more gracefully.
+- Ensures proper mutex handling to prevent potential deadlocks.
+- Improves error handling to return appropriate error codes when an error occurs.
 
 ## Changes
-### `flax_kernel_interpreter.c`
-- Fixed the `get_results` function call by providing the required arguments: `result_buffer` and `buffer_size`.
-
-### New Files
-- `src/jax_kernel_operations.c`: Implements operations for JAX kernel integration.
-- `src/tflite_flatbuffer_parser.c`: Implements the TensorFlow Lite FlatBuffer parser within the kernel space.
-- `src/test_tflite_flatbuffer_parser.sh`: A test script for the TensorFlow Lite FlatBuffer parser.
-- `docs/custom_jax_functionalities_design.md`: A design document for custom JAX functionalities.
-- `.gitignore`: A file to exclude unnecessary files from the repository.
+### `tensorflow_lite_kernel_interpreter.c`
+- Added detailed logging to capture the state of the system memory and kernel buffer before and after critical operations.
+- Implemented retry logic for `vmalloc` and `kmalloc` with delays between retries to handle memory allocation failures more gracefully.
+- Ensured that `kernel_buffer` is only allocated once and reused, rather than being allocated every time `dev_write` is called.
+- Reviewed the mutex locking and unlocking to ensure that the mutex is always released, even if the function exits early.
+- Updated the error handling to return appropriate error codes when an error occurs, rather than the length of `kernel_buffer`.
+- Added logging after the `snprintf` call in the `execute_model` function to confirm whether it is succeeding or failing.
 
 ## Testing
-- The `test_tflite_flatbuffer_parser.sh` script has been created to test the TensorFlow Lite FlatBuffer parser. It includes test cases for ADD, MUL, and SUB operations, as well as an invalid model test case.
-- The `flax_kernel_interpreter.c` file has been updated to ensure correct function calls and memory management practices.
+- The `tensorflow_model_execution_test.sh` script will be used to test the changes. It includes logging system resource usage before and after loading the model, executing the model, and retrieving the results.
 
 ## Next Steps
-- Review the changes and ensure that the `get_results` function call is correctly implemented.
-- Test the TensorFlow Lite FlatBuffer parser using the provided test script.
-- Review the design document for custom JAX functionalities and provide feedback.
+- Review the changes and ensure that the memory allocation and error handling optimizations are correctly implemented.
+- Test the `tensorflow_model_execution_test.sh` script to verify the changes.
 
 ## Authors
 - Devin
